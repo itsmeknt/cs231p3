@@ -1,4 +1,4 @@
-function [ pyramid_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
+function [ pyramid_all class_label_ all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %function [ pyramid_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %
 % Generate the pyramid from the texton lablels
@@ -41,6 +41,7 @@ end
 binsHigh = 2^(pyramidLevels-1);
 
 pyramid_all = [];
+class_label_all = [];
 
 for f = 1:size(imageFileList,1)
 
@@ -116,10 +117,21 @@ for f = 1:size(imageFileList,1)
 
     pyramid_all = [pyramid_all; pyramid];
 
+    class_label = get_class_label(base);
+    class_label_all = [class_label_all; class_label];
 end % f
 
 outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d.mat', dictionarySize, pyramidLevels));
 save(outFName, 'pyramid_all');
 
 
+end
+
+function [class_label] = get_class_label(filename)
+underscores = find(filename=='_');
+if (length(underscores) < 3)
+    class_label = 'unkown';
+else
+    class_label = filename(1:underscores(3)-1);
+end
 end
