@@ -1,0 +1,2 @@
+1. strong features are weak at higher levels of spm (2->3, weak features still do better at higher levels 
+2. combining multiple levels of vocabulary size (M=200 & M=400)
