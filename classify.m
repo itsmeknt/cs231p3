@@ -30,8 +30,14 @@ for f = 1:num_files
 	filenames{f} = fnames(f).name;
 end
 
+% train - generate dictionary, learn svm model
 generate_dictionary(filenames, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
 [training_features training_labels] = compute_features(filenames, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
+model = train(training_labels, training_features);
+
+% test - make predictions
 [testing_features testing_labels] = compute_features(filenames, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
+[predicted_label, accuracy, decision_values/prob_estimates] = predict(testing_labels, testing_features, model);
+
 end
 
