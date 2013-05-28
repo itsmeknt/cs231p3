@@ -31,7 +31,7 @@ for f = 1:num_files
 end
 
 generate_dictionary(filenames, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-pyramid_training = compute_features(filenames, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-pyramid_testing = compute_features(filenames, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
+[training_features training_labels] = compute_features(filenames, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
+[testing_features testing_labels] = compute_features(filenames, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
 end
 
