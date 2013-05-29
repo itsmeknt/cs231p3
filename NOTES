@@ -1,3 +1,80 @@
 1. strong features are weak at higher levels of spm (2->3, weak features still do better at higher levels 
 2. combining multiple levels of vocabulary size (M=200 & M=400)
 3. weak against textureless ess animals (e.g. cougar, beaver in caltech 101), thin object classification (e.g. ants)
+
+
+
+
+
+% feature configurations
+maxImageSize = 1000;
+dictionarySize = 200;
+numTextonImages = 50;
+pyramidLevels = 4;
+
+gridSpacing = 8;
+patchSize = 16;
+
+RESULTS:
+
+mean =
+
+    0.4140
+
+
+cm =
+
+  Columns 1 through 14
+
+    17    17    17    17    17    17    17    17    17    17    17    17    17    17
+    62    62    62    62    62    62    62    62    62    62    62    62    62    62
+     2     2     2     2     2     2     2     2     2     2     2     2     2     2
+    50    50    50    50    50    50    50    50    50    50    50    50    50    50
+     7     7     7     7     7     7     7     7     7     7     7     7     7     7
+   118   118   118   118   118   118   118   118   118   118   118   118   118   118
+   217   217   217   217   217   217   217   217   217   217   217   217   217   217
+   134   134   134   134   134   134   134   134   134   134   134   134   134   134
+    77    77    77    77    77    77    77    77    77    77    77    77    77    77
+    37    37    37    37    37    37    37    37    37    37    37    37    37    37
+   124   124   124   124   124   124   124   124   124   124   124   124   124   124
+   109   109   109   109   109   109   109   109   109   109   109   109   109   109
+   100   100   100   100   100   100   100   100   100   100   100   100   100   100
+    81    81    81    81    81    81    81    81    81    81    81    81    81    81
+    67    67    67    67    67    67    67    67    67    67    67    67    67    67
+
+  Column 15
+
+    17
+    62
+     2
+    50
+     7
+   118
+   217
+   134
+    77
+    37
+   124
+   109
+   100
+    81
+    67
+
+
+ca =
+
+    0.1466
+    0.4397
+    0.0095
+    0.4545
+    0.0370
+    0.4538
+    0.9518
+    0.8375
+    0.3702
+    0.1350
+    0.4000
+    0.5677
+    0.3906
+    0.7043
+    0.3116

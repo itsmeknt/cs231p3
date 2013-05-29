@@ -16,7 +16,7 @@ USE_FEATURE_CACHE_DEFAULT = 1;
 
 % feature configurations
 maxImageSize = 1000;
-dictionarySize = 200;
+dictionarySize = 400;
 numTextonImages = 50;
 pyramidLevels = 4;
 
