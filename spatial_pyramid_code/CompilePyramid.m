@@ -1,4 +1,4 @@
-function [ pyramid_all class_label_ all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
+function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %function [ pyramid_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %
 % Generate the pyramid from the texton lablels
@@ -56,6 +56,9 @@ for f = 1:size(imageFileList,1)
         fprintf('Skipping %s\n', imageFName);
         load(outFName, 'pyramid');
         pyramid_all = [pyramid_all; pyramid];
+        
+        class_label = get_class_label(base);
+        class_label_all = [class_label_all; class_label];
         continue;
     end
     
@@ -130,8 +133,43 @@ end
 function [class_label] = get_class_label(filename)
 underscores = find(filename=='_');
 if (length(underscores) < 3)
-    class_label = 'unkown';
+    class_label = -1;
 else
-    class_label = filename(1:underscores(3)-1);
+    filename_prefix = filename(1:underscores(3)-1);
+    
+    % for scene categries
+    if (strcmp(filename_prefix, 'scene_category_bedroom'))
+        class_label = 0;
+    elseif (strcmp(filename_prefix, 'scene_category_CALsuburb'))
+        class_label = 1;
+    elseif (strcmp(filename_prefix, 'scene_category_industrial'))
+        class_label = 2;
+    elseif (strcmp(filename_prefix, 'scene_category_kitchen'))
+        class_label = 3;
+    elseif (strcmp(filename_prefix, 'scene_category_livingroom'))
+        class_label = 4;
+    elseif (strcmp(filename_prefix, 'scene_category_MITcoast'))
+        class_label = 5;
+    elseif (strcmp(filename_prefix, 'scene_category_MITforest'))
+        class_label = 6;
+    elseif (strcmp(filename_prefix, 'scene_category_MIThighway'))
+        class_label = 7;
+    elseif (strcmp(filename_prefix, 'scene_category_MITinsidecity'))
+        class_label = 8;
+    elseif (strcmp(filename_prefix, 'scene_category_MITmountain'))
+        class_label = 9;
+    elseif (strcmp(filename_prefix, 'scene_category_MITopencountry'))
+        class_label = 10;
+    elseif (strcmp(filename_prefix, 'scene_category_MITstreet'))
+        class_label = 11;
+    elseif (strcmp(filename_prefix, 'scene_category_MITtallbuilding'))
+        class_label = 12;
+    elseif (strcmp(filename_prefix, 'scene_category_PARoffice'))
+        class_label = 13;
+    elseif (strcmp(filename_prefix, 'scene_category_store'))
+        class_label = 14;
+    else
+        class_label = -1;
+    end
 end
 end

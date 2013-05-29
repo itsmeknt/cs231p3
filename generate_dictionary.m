@@ -1,8 +1,15 @@
-function [ ] = generate_dictionary(imageFileList, imageBaseDir, dataBaseDir, canSkip)
+function [ ] = generate_dictionary(trainingFileList, trainingBaseDir, trainingCacheDir, testCacheDir, canSkip)
 
 config;
 
-GenerateSiftDescriptors( imageFileList,imageBaseDir,dataBaseDir,maxImageSize,gridSpacing,patchSize,canSkip);
-CalculateDictionary(imageFileList,dataBaseDir,'_sift.mat',dictionarySize,numTextonImages,canSkip);
+GenerateSiftDescriptors( trainingFileList,trainingBaseDir,trainingCacheDir,maxImageSize,gridSpacing,patchSize,canSkip);
+CalculateDictionary(trainingFileList,trainingCacheDir,'_sift.mat',dictionarySize,numTextonImages,canSkip);
+
+% copy dictionary file from training cache to test cache. We use same
+% dictionary in both train and test
+dictFileName = sprintf('dictionary_%d.mat', dictionarySize);
+dictTrainingCache = fullfile(trainingCacheDir, dictFileName);
+dictTestCache = fullfile(testCacheDir, dictFileName);
+copyfile(dictTrainingCache, dictTestCache);
 end
 

@@ -1,5 +1,6 @@
 %% global configurations
-addpath(spatial_pyramid_code);
+addpath('spatial_pyramid_code');
+addpath('liblinear-1.93/matlab');
 
 rng(0);
 DEFAULT_DATASET_TYPE = 'scene';
@@ -11,7 +12,7 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 
 %% classify.m configurations
 % defaults
-USE_FEATURE_DEFAULT = 1;
+USE_FEATURE_CACHE_DEFAULT = 1;
 
 % feature configurations
 maxImageSize = 1000;
