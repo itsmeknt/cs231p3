@@ -1,4 +1,4 @@
-function [mean_accuracy confusion_matrix class_accuracies class_list] = classify(dataset_base_dir, feature_cache_dir, use_feature_cache)
+function [train_evaluation test_evaluation] = classify(dataset_base_dir, feature_cache_dir, use_feature_cache)
 
 % dataset_base_dir: the base directory for the image files
 % feature_cache_dir: the base directory for the data files that are generated
@@ -31,12 +31,15 @@ generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir,
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
 model = train(training_labels, sparse(training_features));
 
+% train evaluation
+[predicted_train_label, ~, ~] = predict(training_labels, sparse(training_features), model);
+[train_evaluation] = evaluate(predicted_train_label, training_labels);
+
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
-[predicted_label, ~, ~] = predict(testing_labels, sparse(testing_features), model);
+[predicted_test_label, ~, ~] = predict(testing_labels, sparse(testing_features), model);
 
-[class_accuracies confusion_matrix class_list] = evaluate(predicted_label, testing_labels);
-mean_accuracy =  mean(class_accuracies);
+[test_evaluation] = evaluate(predicted_test_label, testing_labels);
 end
 
 function [filenames] = get_image_filenames(image_dir)

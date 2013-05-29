@@ -1,8 +1,14 @@
-function [class_accuracies confusion_matrix class_list] = evaluate(predicted_label, true_label)
+function [evaluation] = evaluate(predicted_label, true_label)
 [class_accuracies class_list] = get_class_accuracies(predicted_label, true_label);
 [confusion_matrix class_list2] = get_confusion_matrix(predicted_label, true_label);
 
 assert(all(class_list == class_list2), 'class_list and class_list2 are not equal!');
+
+evaluation.class_list = class_list;
+evaluation.class_accuracies = class_accuracies;
+evaluation.mean_class_accuracy = mean(class_accuracies);
+evaluation.confusion_matrix = confusion_matrix;
+
 end
 
 
