@@ -35,7 +35,7 @@ for i=1:length(class_list)
    true_class_binary = (true_label == curr_true_class);
    
    for j=1:length(class_list)
-      curr_predicted_class = class_list(i);
+      curr_predicted_class = class_list(j);
       predicted_class_binary = (predicted_label == curr_predicted_class);
       
       confusion_matrix(i,j) = sum(true_class_binary & predicted_class_binary);

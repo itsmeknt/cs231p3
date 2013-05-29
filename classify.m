@@ -40,6 +40,20 @@ model = train(training_labels, sparse(training_features));
 [predicted_test_label, ~, ~] = predict(testing_labels, sparse(testing_features), model);
 
 [test_evaluation] = evaluate(predicted_test_label, testing_labels);
+
+
+date_and_time = clock;
+y = int64(date_and_time(1));
+m = int64(date_and_time(2));
+d = int64(date_and_time(3));
+h = int64(date_and_time(4));
+m = int64(date_and_time(5));
+s = int64(date_and_time(6));
+
+dataset_name = dataset_base_dir;
+dataset_name(dataset_name=='/')='-';
+outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%s_%d_%d_%d_%d.mat', y, m, d, h, m ,s, dataset_name, dictionarySize, pyramidLevels, gridSpacing, patchSize)];
+save(outFName, 'train_evaluation', 'test_evaluation');  
 end
 
 function [filenames] = get_image_filenames(image_dir)
