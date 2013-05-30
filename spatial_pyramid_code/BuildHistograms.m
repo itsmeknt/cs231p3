@@ -1,4 +1,4 @@
-function [ H_all ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, dictionarySize, canSkip )
+function [ H_all ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, dictionarySize, numTextonImages, canSkip, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5 )
 %function [ H_all ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, dictionarySize, canSkip )
 %
 %find texton labels of patches and compute texton histograms of all images
@@ -27,17 +27,28 @@ fprintf('Building Histograms\n\n');
 
 %% parameters
 
-if(nargin<3)
+if(nargin<4)
     dictionarySize = 200
 end
 
-if(nargin<4)
+if(nargin<5)
+    numTextonImages = 50
+end
+
+if(nargin<6)
     canSkip = 0
 end
 
+%% Check cache
+outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages,ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+if (size(dir(outFName), 1) ~= 0)
+    return;
+end
+
+
 %% load texton dictionary (all texton centers)
 
-inFName = fullfile(dataBaseDir, sprintf('dictionary_%d.mat', dictionarySize));
+inFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 load(inFName,'dictionary');
 fprintf('Loaded texton dictionary: %d textons\n', dictionarySize);
 
@@ -51,8 +62,9 @@ for f = 1:size(imageFileList,1)
     baseFName = fullfile(dirN, base);
     inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
     
-    outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d.mat', baseFName, dictionarySize));
-    outFName2 = fullfile(dataBaseDir, sprintf('%s_hist_%d.mat', baseFName, dictionarySize));
+    outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+    outFName2 = fullfile(dataBaseDir, sprintf('%s_hist_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+        
     if(size(dir(outFName),1)~=0 && size(dir(outFName2),1)~=0 && canSkip)
         fprintf('Skipping %s\n', imageFName);
         load(outFName2, 'H');
@@ -96,7 +108,7 @@ for f = 1:size(imageFileList,1)
 end
 
 %% save histograms of all images in this directory in a single file
-outFName = fullfile(dataBaseDir, sprintf('histograms_%d.mat', dictionarySize));
+outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 save(outFName, 'H_all', '-ascii');
 
 

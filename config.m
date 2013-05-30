@@ -25,3 +25,8 @@ pyramidLevels = 4;
 gridSpacing = 8;
 patchSize = 16;
 
+ext_param_1 = 0;
+ext_param_2 = 0;
+ext_param_3 = 0;
+ext_param_4 = 0;
+ext_param_5 = 0;

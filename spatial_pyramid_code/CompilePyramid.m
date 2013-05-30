@@ -1,4 +1,4 @@
-function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
+function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, numTextonImages, pyramidLevels, canSkip, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5 )
 %function [ pyramid_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %
 % Generate the pyramid from the texton lablels
@@ -34,7 +34,11 @@ if(nargin<5)
     pyramidLevels = 4
 end
 
-if(nargin<6)
+if (nargin<6)
+    numTextonImages = 50
+end
+
+if(nargin<7)
     canSkip = 0
 end
 
@@ -42,6 +46,14 @@ binsHigh = 2^(pyramidLevels-1);
 
 pyramid_all = [];
 class_label_all = [];
+
+
+%% Check cache
+outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+if (size(dir(outFName), 1) ~= 0)
+    load(outFName, 'pyramid_all', 'class_label_all');
+    return;
+end
 
 for f = 1:size(imageFileList,1)
 
@@ -51,13 +63,13 @@ for f = 1:size(imageFileList,1)
     [dirN base] = fileparts(imageFName);
     baseFName = fullfile(dirN, base);
     
-    outFName = fullfile(dataBaseDir, sprintf('%s_pyramid_%d_%d.mat', baseFName, dictionarySize, pyramidLevels));
+    outFName = fullfile(dataBaseDir, sprintf('%s_pyramid_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+
     if(size(dir(outFName),1)~=0 && canSkip)
         fprintf('Skipping %s\n', imageFName);
-        load(outFName, 'pyramid');
+        load(outFName, 'pyramid', 'class_label');
         pyramid_all = [pyramid_all; pyramid];
         
-        class_label = get_class_label(base);
         class_label_all = [class_label_all; class_label];
         continue;
     end
@@ -115,17 +127,18 @@ for f = 1:size(imageFileList,1)
     end
     pyramid = [pyramid pyramid_cell{pyramidLevels}(:)' .* 2^(1-pyramidLevels)];
 
+    class_label = get_class_label(base);
+    
     % save pyramid
-    save(outFName, 'pyramid');
+    save(outFName, 'pyramid', 'class_label');
 
     pyramid_all = [pyramid_all; pyramid];
 
-    class_label = get_class_label(base);
     class_label_all = [class_label_all; class_label];
 end % f
 
-outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d.mat', dictionarySize, pyramidLevels));
-save(outFName, 'pyramid_all');
+outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+save(outFName, 'pyramid_all', 'class_label_all');
 
 
 end

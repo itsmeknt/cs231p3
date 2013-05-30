@@ -52,7 +52,7 @@ s = int64(date_and_time(6));
 
 dataset_name = dataset_base_dir;
 dataset_name(dataset_name=='/')='-';
-outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%s_%d_%d_%d_%d.mat', y, m, d, h, m ,s, dataset_name, dictionarySize, pyramidLevels, gridSpacing, patchSize)];
+outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d.mat', y, m, d, h, m ,s, dataset_name, dictionarySize, pyramidLevels, gridSpacing, patchSize)];
 save(outFName, 'train_evaluation', 'test_evaluation');  
 end
 
