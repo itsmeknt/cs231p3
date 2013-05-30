@@ -1,7 +1,4 @@
 %% global configurations
-addpath('spatial_pyramid_code');
-addpath('liblinear-1.93/matlab');
-
 rng(0);
 DEFAULT_DATASET_TYPE = 'scene';
 
@@ -15,6 +12,7 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 %% classify.m configurations
 % defaults
 USE_FEATURE_CACHE_DEFAULT = 1;
+use_histogram_intersection_kernel = 0;
 
 % feature configurations
 maxImageSize = 1000;
@@ -30,3 +28,12 @@ ext_param_2 = 0;
 ext_param_3 = 0;
 ext_param_4 = 0;
 ext_param_5 = 0;
+
+
+%% add paths
+addpath('spatial_pyramid_code');
+if (use_histogram_intersection_kernel)
+    addpath('libsvm-3.17/matlab');
+else
+    addpath('liblinear-1.93/matlab');
+end

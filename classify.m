@@ -26,33 +26,44 @@ end
 filenames_train = get_image_filenames(dataset_train_dir);
 filenames_test = get_image_filenames(dataset_test_dir);
 
-% train - generate dictionary, learn svm model
+% generate dictionary
 generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir, feature_cache_test_dir, use_feature_cache);
-[training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-model = train(training_labels, sparse(training_features));
 
-% train evaluation
-[predicted_train_label, ~, ~] = predict(training_labels, sparse(training_features), model);
-[train_evaluation] = evaluate(predicted_train_label, training_labels);
+
+% train + training evaluation
+[training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
+if (use_histogram_intersection_kernel)
+    model = train(training_labels, sparse(training_features));
+    [predicted_train_labels, ~, ~] = predict(training_labels, sparse(training_features), model);
+else
+    K_train = [(1:size(training_features,1))'; hist_isect(training_features, training_features)];
+    model = svmtrain(training_labels, K_train, '-t 4');
+    [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model); 
+end
+[train_evaluation] = evaluate(predicted_train_labels, training_labels);
 
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
-[predicted_test_label, ~, ~] = predict(testing_labels, sparse(testing_features), model);
-
-[test_evaluation] = evaluate(predicted_test_label, testing_labels);
+if (use_histogram_intersection_kernel)
+    [predicted_test_labels, ~, ~] = predict(testing_labels, sparse(testing_features), model);
+else
+    K_test = [(1:size(testing_features,1))'; hist_isect(testing_features, testing_features)];
+    [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
+end
+[test_evaluation] = evaluate(predicted_test_labels, testing_labels);
 
 
 date_and_time = clock;
 y = int64(date_and_time(1));
 m = int64(date_and_time(2));
 d = int64(date_and_time(3));
-h = int64(date_and_time(4));
-m = int64(date_and_time(5));
-s = int64(date_and_time(6));
+hh = int64(date_and_time(4));
+mm = int64(date_and_time(5));
+ss = int64(date_and_time(6));
 
 dataset_name = dataset_base_dir;
 dataset_name(dataset_name=='/')='-';
-outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d.mat', y, m, d, h, m ,s, dataset_name, dictionarySize, pyramidLevels, gridSpacing, patchSize)];
+outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d_%d_%d.mat', y, m, d, hh, mm ,ss, dataset_name, use_histogram_intersection_kernel, dictionarySize, numTextonImages, pyramidLevels, gridSpacing, patchSize)];
 save(outFName, 'train_evaluation', 'test_evaluation');  
 end
 
