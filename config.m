@@ -16,7 +16,7 @@ use_histogram_intersection_kernel = 0;
 
 % feature configurations
 maxImageSize = 1000;
-dictionarySize = 200;
+dictionarySize = 400;
 numTextonImages = 50;
 pyramidLevels = 4;
 
