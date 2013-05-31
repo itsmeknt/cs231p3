@@ -1,4 +1,4 @@
-function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, numTextonImages, pyramidLevels, canSkip, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5 )
+function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, canSkip )
 %function [ pyramid_all ] = CompilePyramid( imageFileList, dataBaseDir, textonSuffix, dictionarySize, pyramidLevels, canSkip )
 %
 % Generate the pyramid from the texton lablels
@@ -22,6 +22,7 @@ function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBa
 %  file is found in dataBaseDir. This is very useful if you just want to
 %  update some of the data or if you've added new images.
 
+config;
 fprintf('Building Spatial Pyramid\n\n');
 
 %% parameters
