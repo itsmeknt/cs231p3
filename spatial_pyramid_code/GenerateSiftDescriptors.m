@@ -1,4 +1,4 @@
-function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir, maxImageSize, gridSpacing, patchSize, canSkip, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5 )
+function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir, canSkip )
 %function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir, maxImageSize, gridSpacing, patchSize, canSkip )
 %
 %Generate the dense grid of sift descriptors for each
@@ -18,6 +18,7 @@ function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir,
 %  file is found in dataBaseDir. This is very useful if you just want to
 %  update some of the data or if you've added new images.
 
+config;
 fprintf('Building Sift Descriptors\n\n');
 
 %% parameters
