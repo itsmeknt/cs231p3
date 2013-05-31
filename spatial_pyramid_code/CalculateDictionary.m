@@ -1,4 +1,4 @@
-function [ ] = CalculateDictionary( imageFileList, dataBaseDir, featureSuffix, dictionarySize, numTextonImages, canSkip, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5 )
+function [ ] = CalculateDictionary( imageFileList, dataBaseDir, featureSuffix, canSkip )
 %function [ ] = CalculateDictionary( imageFileList, dataBaseDir, featureSuffix, dictionarySize, numTextonImages, canSkip )
 %
 %Create the texton dictionary
@@ -23,6 +23,7 @@ function [ ] = CalculateDictionary( imageFileList, dataBaseDir, featureSuffix, d
 %  file is found in dataBaseDir. This is very useful if you just want to
 %  update some of the data or if you've added new images.
 
+config;
 fprintf('Building Dictionary\n\n');
 
 %% parameters
