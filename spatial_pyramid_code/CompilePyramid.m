@@ -102,9 +102,14 @@ for f = 1:size(imageFileList,1)
             
             texton_patch = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
                                             (texton_ind.y > y_lo) & (texton_ind.y <= y_hi));
-            
-            % make histogram of features in bin
-            pyramid_cell{1}(i,j,:) = hist(texton_patch, 1:dictionarySize)./length(texton_ind.data);
+                                       
+            if (strcmp(poolType, 'sum'))
+                pyramid_cell{1}(i,j,:) = sum(patch_codewords,2);
+            elseif (strcmp(poolType, 'max'))
+                pyramid_cell{1}(i,j,:) = max(patch_codewords,2);
+            else
+                error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"]);
+            end
         end
     end
 
@@ -114,21 +119,46 @@ for f = 1:size(imageFileList,1)
         pyramid_cell{l} = zeros(num_bins, num_bins, dictionarySize);
         for i=1:num_bins
             for j=1:num_bins
-                pyramid_cell{l}(i,j,:) = ...
-                pyramid_cell{l-1}(2*i-1,2*j-1,:) + pyramid_cell{l-1}(2*i,2*j-1,:) + ...
-                pyramid_cell{l-1}(2*i-1,2*j,:) + pyramid_cell{l-1}(2*i,2*j,:);
+                if (strcmp(poolType, 'sum'))
+                    pyramid_cell{l}(i,j,:) = pyramid_cell{l-1}(2*i-1,2*j-1,:) + pyramid_cell{l-1}(2*i,2*j-1,:) + pyramid_cell{l-1}(2*i-1,2*j,:) + pyramid_cell{l-1}(2*i,2*j,:);
+                elseif (strcmp(poolType, 'max'))
+                    pyramid_cell{l}(i,j,:) = max(max(pyramid_cell{l-1}(2*i-1,2*j-1,:), pyramid_cell{l-1}(2*i,2*j-1,:)), max(pyramid_cell{l-1}(2*i-1,2*j,:), pyramid_cell{l-1}(2*i,2*j,:)));
+                else
+                    error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
+                end
             end
         end
         num_bins = num_bins/2;
     end
-
+    
+    % normalize
+    if (strcmp(poolNormalization,'sum'))
+        total_sum = sum(sum(texton_ind.data));
+    end
+    for l = 1:pyramidLevels
+        if (strcmp(poolNormalization,'sum'))
+            pyramid_cell{l} = pyramid_cell{l}/total_sum;
+        elseif (strcmp(poolNormalization,'L2'))
+            pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, sqrt(sum(pyramid_cell{l}.^2,1)))
+        else
+            error(['poolNormalization "' poolNormalization '" not supported! Currently only support "sum" and "L2"']);
+        end
+    end
+    
     %% stack all the histograms with appropriate weights
     pyramid = [];
-    for l = 1:pyramidLevels-1
-        pyramid = [pyramid pyramid_cell{l}(:)' .* 2^(-l)];
+    if (use_pyramid_level_weights)
+        for l = 1:pyramidLevels-1
+            pyramid = [pyramid pyramid_cell{l}(:)' .* 2^(-l)];
+        end
+        pyramid = [pyramid pyramid_cell{pyramidLevels}(:)' .* 2^(1-pyramidLevels)];
+    else
+        for l = 1:pyramidLevels-1
+            pyramid = [pyramid pyramid_cell{l}(:)'];
+        end
+        pyramid = [pyramid pyramid_cell{pyramidLevels}(:)'];
     end
-    pyramid = [pyramid pyramid_cell{pyramidLevels}(:)' .* 2^(1-pyramidLevels)];
-
+    
     class_label = get_class_label(base);
     
     % save pyramid
