@@ -13,6 +13,23 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 % defaults
 USE_FEATURE_CACHE_DEFAULT = 1;
 use_pyramid_match_kernel = 1;
+if (use_pyramid_match_kernel)
+    use_histogam_intersection_kernel = 1;
+    use_pyramid_level_weights = 1;
+else
+    use_histogam_intersection_kernel = 0;
+    use_pyramid_level_weights = 0;
+end
+use_LLC = 0;
+if (use_LLC)
+    code_constraint = 'LLC';
+    poolType = 'max';
+    poolNormalization = 'L2';
+else
+    code_constraint = 'VC';
+    poolType = 'sum';
+    poolNormalization = 'sum';
+end
 
 % feature configurations
 maxImageSize = 1000;
@@ -23,11 +40,11 @@ pyramidLevels = 4;
 gridSpacing = 8;
 patchSize = 16;
 
-ext_param_1 = 0;
-ext_param_2 = 0;
-ext_param_3 = 0;
-ext_param_4 = 0;
-ext_param_5 = 0;
+ext_param_1 = use_LLC;
+ext_param_2 = strcmp(code_constraint, 'VC');
+ext_param_3 = ~use_pyramid_level_weights;
+ext_param_4 = strcmp(poolType, 'sum');
+ext_param_5 = strcmp(poolNormalization, 'sum');
 
 
 %% add paths
