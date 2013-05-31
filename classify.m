@@ -32,7 +32,7 @@ generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir,
 
 % train + training evaluation
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-if (use_pyramid_match_kernel)
+if (use_histogam_intersection_kernel)
     K_train = [(1:size(training_features,1))', hist_isect_c(training_features, training_features)];
     model = svmtrain(training_labels, K_train, '-t 4');
     [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
@@ -44,7 +44,7 @@ end
 
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
-if (use_pyramid_match_kernel)
+if (use_histogam_intersection_kernel)
     K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, training_features)];
     [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
 else
