@@ -12,12 +12,12 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 %% classify.m configurations
 % defaults
 USE_FEATURE_CACHE_DEFAULT = 1;
-use_histogram_intersection_kernel = 0;
+use_histogram_intersection_kernel = 1;
 
 % feature configurations
 maxImageSize = 1000;
 dictionarySize = 400;
-numTextonImages = 50;
+numTextonImages = 1000;
 pyramidLevels = 4;
 
 gridSpacing = 8;

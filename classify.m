@@ -45,13 +45,15 @@ end
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
 if (use_histogram_intersection_kernel)
-    K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, testing_features)];
+    K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, training_features)];
     [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
 else
     [predicted_test_labels, ~, ~] = predict(testing_labels, sparse(testing_features), model);
 end
 [test_evaluation] = evaluate(predicted_test_labels, testing_labels);
 
+train_evaluation
+test_evaluation
 
 date_and_time = clock;
 y = int64(date_and_time(1));
