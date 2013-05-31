@@ -1,4 +1,4 @@
-function [ H_all ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, canSkip )
+function [ ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, canSkip )
 %
 %find texton labels of patches and compute texton histograms of all images
 %   
@@ -78,7 +78,7 @@ for f = 1:size(imageFileList,1)
     fprintf('Loaded %s, %d descriptors\n', inFName, ndata);
 
     %% find texton indices and compute histogram 
-    texton_ind.data = zeros(ndata,1);
+    texton_ind.data = zeros(dictionarySize, ndata);
     texton_ind.x = features.x;
     texton_ind.y = features.y;
     texton_ind.wid = features.wid;
@@ -86,30 +86,39 @@ for f = 1:size(imageFileList,1)
     %run in batches to keep the memory foot print small
     batchSize = 10000;
     if ndata <= batchSize
-        dist_mat = sp_dist2(features.data, dictionary);
-        [min_dist, min_ind] = min(dist_mat, [], 2);
-        texton_ind.data = min_ind;
+        if (strcmp(code_constraint, 'VC')
+           dist_mat = sp_dist2(features.data, dictionary);
+           [min_dist, min_ind] = min(dist_mat, [], 2);
+           for n = 1:length(min_ind)
+               texton_ind.data(min_ind(n),n) = 1;
+           end
+        end
     else
         for j = 1:batchSize:ndata
-            lo = j;
-            hi = min(j+batchSize-1,ndata);
-            dist_mat = dist2(features.data(lo:hi,:), dictionary);
-            [min_dist, min_ind] = min(dist_mat, [], 2);
-            texton_ind.data(lo:hi,:) = min_ind;
+            if (strcmp(code_constraint, 'VC')
+                lo = j;
+                hi = min(j+batchSize-1,ndata);
+                dist_mat = dist2(features.data(lo:hi,:), dictionary);
+                [min_dist, min_ind] = min(dist_mat, [], 2);
+                for n = lo:hi
+                    texton_ind.data(min_ind(n-lo+1),n) = 1;
+                end
+                texton_ind.data(lo:hi,:) = min_ind;
+            end
         end
     end
 
-    H = hist(texton_ind.data, 1:dictionarySize);
-    H_all = [H_all; H];
+    % H = hist(texton_ind.data, 1:dictionarySize);
+    % H_all = [H_all; H];
 
     %% save texton indices and histograms
     save(outFName, 'texton_ind');
-    save(outFName2, 'H');
+    % save(outFName2, 'H');
 end
 
 %% save histograms of all images in this directory in a single file
-outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-save(outFName, 'H_all', '-ascii');
+% outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+% save(outFName, 'H_all', '-ascii');
 
 
 end
