@@ -87,11 +87,11 @@ for f = 1:size(imageFileList,1)
     batchSize = 10000;
     if ndata <= batchSize
         if (strcmp(code_constraint, 'VC')
-           dist_mat = sp_dist2(features.data, dictionary);
-           [min_dist, min_ind] = min(dist_mat, [], 2);
-           for n = 1:length(min_ind)
-               texton_ind.data(min_ind(n),n) = 1;
-           end
+            dist_mat = sp_dist2(features.data, dictionary);
+            [min_dist, min_ind] = min(dist_mat, [], 2);
+            row = min_ind;
+            col = 1:length(min_ind);
+            texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
         end
     else
         for j = 1:batchSize:ndata
@@ -100,10 +100,9 @@ for f = 1:size(imageFileList,1)
                 hi = min(j+batchSize-1,ndata);
                 dist_mat = dist2(features.data(lo:hi,:), dictionary);
                 [min_dist, min_ind] = min(dist_mat, [], 2);
-                for n = lo:hi
-                    texton_ind.data(min_ind(n-lo+1),n) = 1;
-                end
-                texton_ind.data(lo:hi,:) = min_ind;
+                row = min_ind;
+                col = 1:length(min_ind);
+                texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
             end
         end
     end
