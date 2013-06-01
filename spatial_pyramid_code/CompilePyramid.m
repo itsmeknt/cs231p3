@@ -108,7 +108,7 @@ for f = 1:size(imageFileList,1)
             elseif (strcmp(poolType, 'max'))
                 pyramid_cell{1}(i,j,:) = max(patch_codewords,2);
             else
-                error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"]);
+                error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
             end
         end
     end
