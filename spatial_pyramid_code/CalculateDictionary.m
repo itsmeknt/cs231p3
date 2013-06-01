@@ -26,28 +26,11 @@ function [ ] = CalculateDictionary( imageFileList, dataBaseDir, featureSuffix, c
 config;
 fprintf('Building Dictionary\n\n');
 
-%% parameters
-
-reduce_flag = 1;
-ndata_max = 100000;
-
-if(nargin<4)
-    dictionarySize = 200
-end
-
-if(nargin<5)
-    numTextonImages = 50
-end
-
-if(nargin<6)
-    canSkip = 0
-end
+outFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 
 if(numTextonImages > size(imageFileList,1))
     numTextonImages = size(imageFileList,1);
 end
-
-outFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 
 if(size(dir(outFName),1)~=0 && canSkip)
     fprintf('Dictionary file %s already exists.\n', outFName);
@@ -94,7 +77,7 @@ end
 fprintf('\nTotal descriptors loaded: %d\n', size(sift_all,1));
 
 ndata = size(sift_all,1);    
-if (reduce_flag > 0) & (ndata > ndata_max)
+if (reduce_dictionary > 0) && (ndata > ndata_max)
     fprintf('Reducing to %d descriptors\n', ndata_max);
     p = randperm(ndata);
     sift_all = sift_all(p(1:ndata_max),:);

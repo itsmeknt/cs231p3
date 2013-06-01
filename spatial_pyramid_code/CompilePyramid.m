@@ -25,24 +25,6 @@ function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBa
 config;
 fprintf('Building Spatial Pyramid\n\n');
 
-%% parameters
-
-if(nargin<4)
-    dictionarySize = 200
-end
-
-if(nargin<5)
-    pyramidLevels = 4
-end
-
-if (nargin<6)
-    numTextonImages = 50
-end
-
-if(nargin<7)
-    canSkip = 0
-end
-
 binsHigh = 2^(pyramidLevels-1);
 
 pyramid_all = [];
@@ -99,14 +81,13 @@ for f = 1:size(imageFileList,1)
             x_hi = floor(wid/binsHigh * i);
             y_lo = floor(hgt/binsHigh * (j-1));
             y_hi = floor(hgt/binsHigh * j);
-            
-            texton_patch = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
-                                            (texton_ind.y > y_lo) & (texton_ind.y <= y_hi));
-                                       
+                               
+            patch_codewords_transpose = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
+                                            (texton_ind.y > y_lo) & (texton_ind.y <= y_hi), :)';        % M x num_patches dim
             if (strcmp(poolType, 'sum'))
-                pyramid_cell{1}(i,j,:) = sum(patch_codewords,2);
+                pyramid_cell{1}(i,j,:) = sum(patch_codewords_transpose,2);
             elseif (strcmp(poolType, 'max'))
-                pyramid_cell{1}(i,j,:) = max(patch_codewords,2);
+                pyramid_cell{1}(i,j,:) = max(patch_codewords_transpose,[],2);
             else
                 error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
             end
@@ -134,12 +115,17 @@ for f = 1:size(imageFileList,1)
     % normalize
     if (strcmp(poolNormalization,'sum'))
         total_sum = sum(sum(texton_ind.data));
+        if total_sum == 0
+            total_sum = 1;
+        end
     end
     for l = 1:pyramidLevels
         if (strcmp(poolNormalization,'sum'))
             pyramid_cell{l} = pyramid_cell{l}/total_sum;
         elseif (strcmp(poolNormalization,'L2'))
-            pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, sqrt(sum(pyramid_cell{l}.^2,1)))
+            denominator = sqrt(sum(pyramid_cell{l}.^2,3));
+            denominator(denominator==0)=1;
+            pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, denominator);
         else
             error(['poolNormalization "' poolNormalization '" not supported! Currently only support "sum" and "L2"']);
         end
@@ -167,7 +153,7 @@ for f = 1:size(imageFileList,1)
     pyramid_all = [pyramid_all; pyramid];
 
     class_label_all = [class_label_all; class_label];
-end % f
+end 
 
 outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 save(outFName, 'pyramid_all', 'class_label_all');

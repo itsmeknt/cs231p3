@@ -2,7 +2,7 @@
 2. combining multiple levels of vocabulary size (M=200 & M=400)
 3. weak against textureless ess animals (e.g. cougar, beaver in caltech 101), thin object classification (e.g. ants)
 
-
+-use_pyramid_level_weight = 1 for both 
 
 
 % questions

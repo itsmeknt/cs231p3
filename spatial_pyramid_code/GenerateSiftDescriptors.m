@@ -21,32 +21,13 @@ function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir,
 config;
 fprintf('Building Sift Descriptors\n\n');
 
-%% parameters
-
-if(nargin<4)
-    maxImageSize = 1000
-end
-
-if(nargin<5)
-    gridSpacing = 8
-end
-
-if(nargin<6)
-    patchSize = 16
-end
-
-if(nargin<7)
-    canSkip = 0
-end
-
-
 for f = 1:size(imageFileList,1)
 
     %% load image
     imageFName = imageFileList{f};
     [dirN base] = fileparts(imageFName);
     baseFName = [dirN filesep base];
-    outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', 0, 0, 0, 0, 0, 0));
+    outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
     imageFName = fullfile(imageBaseDir, imageFName);
     
     if(size(dir(outFName),1)~=0 && canSkip)

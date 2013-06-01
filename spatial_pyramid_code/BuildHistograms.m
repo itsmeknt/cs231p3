@@ -25,20 +25,6 @@ function [ ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, canSk
 config;
 fprintf('Building Histograms\n\n');
 
-%% parameters
-
-if(nargin<4)
-    dictionarySize = 200
-end
-
-if(nargin<5)
-    numTextonImages = 50
-end
-
-if(nargin<6)
-    canSkip = 0
-end
-
 %% Check cache
 outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages,ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 if (size(dir(outFName), 1) ~= 0)
@@ -48,7 +34,7 @@ end
 
 %% load texton dictionary (all texton centers)
 
-inFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+inFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 load(inFName,'dictionary');
 fprintf('Loaded texton dictionary: %d textons\n', dictionarySize);
 
@@ -78,7 +64,7 @@ for f = 1:size(imageFileList,1)
     fprintf('Loaded %s, %d descriptors\n', inFName, ndata);
 
     %% find texton indices and compute histogram 
-    texton_ind.data = zeros(dictionarySize, ndata);
+    texton_ind.data = zeros(ndata, dictionarySize);         % num_patches x M dim
     texton_ind.x = features.x;
     texton_ind.y = features.y;
     texton_ind.wid = features.wid;
@@ -86,23 +72,23 @@ for f = 1:size(imageFileList,1)
     %run in batches to keep the memory foot print small
     batchSize = 10000;
     if ndata <= batchSize
-        if (strcmp(code_constraint, 'VC')
+        if (strcmp(code_constraint, 'VC'))
             dist_mat = sp_dist2(features.data, dictionary);
             [min_dist, min_ind] = min(dist_mat, [], 2);
-            row = min_ind;
-            col = 1:length(min_ind);
+            row = (1:length(min_ind))';
+            col = min_ind;
             texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
         elseif (strcmp(code_constraint, 'LLC'))
         end
     else
         for j = 1:batchSize:ndata
-            if (strcmp(code_constraint, 'VC')
+            if (strcmp(code_constraint, 'VC'))
                 lo = j;
                 hi = min(j+batchSize-1,ndata);
                 dist_mat = dist2(features.data(lo:hi,:), dictionary);
                 [min_dist, min_ind] = min(dist_mat, [], 2);
-                row = min_ind;
-                col = 1:length(min_ind);
+                row = (1:length(min_ind))';
+                col = min_ind;
                 texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
             elseif (strcmp(code_constraint, 'LLC'))
             end
@@ -164,7 +150,7 @@ cov = cov_half*cov_half;                                 % MxM dim
 d = compute_d(x, B, sigma);             % 1xM dim
 c_tilda = (cov + lambda*diag(d.^2)) \ ones(size(cov,1), size(cov,2));                                 % MxM dim
 
-c = (c_tilda/ones(1, size(cov,2))'*c_tilda;                                       % 1xM dim
+c = (c_tilda/ones(1, size(cov,2)))'*c_tilda;                                       % 1xM dim
 end
 
 % x is a 1xd matrix

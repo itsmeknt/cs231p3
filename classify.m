@@ -1,4 +1,4 @@
-function [train_evaluation test_evaluation] = classify(dataset_base_dir, feature_cache_dir, use_feature_cache)
+function [train_evaluation test_evaluation] = classify(dataset_base_dir, use_feature_cache)
 
 % dataset_base_dir: the base directory for the image files
 % feature_cache_dir: the base directory for the data files that are generated
@@ -13,12 +13,11 @@ config;
 if(nargin<1)
     dataset_base_dir = get_dataset_base_dir(DEFAULT_DATASET_TYPE);
 end
-if(nargin<2)
-    feature_cache_dir = get_feature_cache_base_dir(dataset_base_dir);
-end
-if (nargin<3)
+if (nargin<2)
     use_feature_cache = USE_FEATURE_CACHE_DEFAULT;
 end
+
+feature_cache_dir = get_feature_cache_base_dir(dataset_base_dir);
 
 [dataset_train_dir dataset_test_dir] = get_dataset_training_test_dirs(dataset_base_dir);
 [feature_cache_train_dir feature_cache_test_dir] = get_dataset_training_test_dirs(feature_cache_dir);
@@ -32,7 +31,7 @@ generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir,
 
 % train + training evaluation
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-if (use_histogam_intersection_kernel)
+if (use_histogram_intersection_kernel)
     K_train = [(1:size(training_features,1))', hist_isect_c(training_features, training_features)];
     model = svmtrain(training_labels, K_train, '-t 4');
     [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
@@ -44,7 +43,7 @@ end
 
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
-if (use_histogam_intersection_kernel)
+if (use_histogram_intersection_kernel)
     K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, training_features)];
     [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
 else
