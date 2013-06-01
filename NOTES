@@ -8,3 +8,4 @@
 % questions
 typo on equation 7 of LLC paper?
 do we feature select via threshold after KNN?
+typo on line 11 algorithm 4.1: -2(x-Bc)c
