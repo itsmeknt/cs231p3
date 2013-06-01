@@ -23,6 +23,14 @@ function [ pyramid_all class_label_all ] = CompilePyramid( imageFileList, dataBa
 %  update some of the data or if you've added new images.
 
 config;
+% duplicate variables because parfor complains otherwise
+copy_ext_param_1 = ext_param_1;
+copy_ext_param_2 = ext_param_2;
+copy_ext_param_3 = ext_param_3;
+copy_ext_param_4 = ext_param_4;
+copy_ext_param_5 = ext_param_5;
+copy_dictionarySize = dictionarySize;
+copy_numTextonImages = numTextonImages;
 fprintf('Building Spatial Pyramid\n\n');
 
 binsHigh = 2^(pyramidLevels-1);
@@ -39,121 +47,145 @@ if (size(dir(outFName), 1) ~= 0)
     return;
 end
 
-for f = 1:size(imageFileList,1)
 
 
-    %% load image
-    imageFName = imageFileList{f};
-    [dirN base] = fileparts(imageFName);
-    baseFName = fullfile(dirN, base);
-    
-    outFName = fullfile(dataBaseDir, sprintf('%s_pyramid_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-
-    if(size(dir(outFName),1)~=0 && canSkip)
-        fprintf('Skipping %s\n', imageFName);
-        load(outFName, 'pyramid', 'class_label');
-        pyramid_all = [pyramid_all; pyramid];
+num_batches = ceil(size(imageFileList,1))/num_image_batch_size;
+entries_per_batch = min(num_image_batch_size, size(imageFileList,1));
+for batch_idx = 1:num_batches
+    pyramid_batch = cell(entries_per_batch,1);
+    class_label_batch = cell(entries_per_batch,1);
+    parfor entry_idx = 1:entries_per_batch
+        %% load image
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = fullfile(dirN, base);
         
-        class_label_all = [class_label_all; class_label];
-        continue;
-    end
-    
-    %% load texton indices
-    in_fname = fullfile(dataBaseDir, sprintf('%s%s', baseFName, textonSuffix));
-    load(in_fname, 'texton_ind');
-    
-    %% get width and height of input image
-    wid = texton_ind.wid;
-    hgt = texton_ind.hgt;
-
-    fprintf('Loaded %s: wid %d, hgt %d\n', ...
-             imageFName, wid, hgt);
-
-    %% compute histogram at the finest level
-    pyramid_cell = cell(pyramidLevels,1);
-    pyramid_cell{1} = zeros(binsHigh, binsHigh, dictionarySize);
-
-    for i=1:binsHigh
-        for j=1:binsHigh
-
-            % find the coordinates of the current bin
-            x_lo = floor(wid/binsHigh * (i-1));
-            x_hi = floor(wid/binsHigh * i);
-            y_lo = floor(hgt/binsHigh * (j-1));
-            y_hi = floor(hgt/binsHigh * j);
-                               
-            patch_codewords_transpose = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
-                                            (texton_ind.y > y_lo) & (texton_ind.y <= y_hi), :)';        % M x num_patches dim
-            if (strcmp(poolType, 'sum'))
-                pyramid_cell{1}(i,j,:) = sum(patch_codewords_transpose,2);
-            elseif (strcmp(poolType, 'max'))
-                pyramid_cell{1}(i,j,:) = max(patch_codewords_transpose,[],2);
-            else
-                error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
-            end
+        outFName = fullfile(dataBaseDir, sprintf('%s_pyramid_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, pyramidLevels, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        
+        if(size(dir(outFName),1)~=0 && canSkip)
+            fprintf('Skipping %s\n', imageFName);
+            allVar = load(outFName, 'pyramid', 'class_label');
+            pyramid = allVar.pyramid;
+            class_label = allVar.class_label;
+            
+            pyramid_batch{entry_idx} = pyramid;
+            class_label_batch{entry_idx} = class_label;
+            
+            continue;
         end
-    end
-
-    %% compute histograms at the coarser levels
-    num_bins = binsHigh/2;
-    for l = 2:pyramidLevels
-        pyramid_cell{l} = zeros(num_bins, num_bins, dictionarySize);
-        for i=1:num_bins
-            for j=1:num_bins
+        
+        %% load texton indices
+        in_fname = fullfile(dataBaseDir, sprintf('%s%s', baseFName, textonSuffix));
+        allVar = load(in_fname, 'texton_ind');
+        texton_ind = allVar.texton_ind;
+        
+        %% get width and height of input image
+        wid = texton_ind.wid;
+        hgt = texton_ind.hgt;
+        
+        fprintf('Loaded %s: wid %d, hgt %d\n', ...
+            imageFName, wid, hgt);
+        
+        %% compute histogram at the finest level
+        pyramid_cell = cell(pyramidLevels,1);
+        pyramid_cell{1} = zeros(binsHigh, binsHigh, copy_dictionarySize);
+        
+        for i=1:binsHigh
+            for j=1:binsHigh
+                
+                % find the coordinates of the current bin
+                x_lo = floor(wid/binsHigh * (i-1));
+                x_hi = floor(wid/binsHigh * i);
+                y_lo = floor(hgt/binsHigh * (j-1));
+                y_hi = floor(hgt/binsHigh * j);
+                
+                patch_codewords_transpose = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
+                    (texton_ind.y > y_lo) & (texton_ind.y <= y_hi), :)';        % M x num_patches dim
                 if (strcmp(poolType, 'sum'))
-                    pyramid_cell{l}(i,j,:) = pyramid_cell{l-1}(2*i-1,2*j-1,:) + pyramid_cell{l-1}(2*i,2*j-1,:) + pyramid_cell{l-1}(2*i-1,2*j,:) + pyramid_cell{l-1}(2*i,2*j,:);
+                    pyramid_cell{1}(i,j,:) = sum(patch_codewords_transpose,2);
                 elseif (strcmp(poolType, 'max'))
-                    pyramid_cell{l}(i,j,:) = max(max(pyramid_cell{l-1}(2*i-1,2*j-1,:), pyramid_cell{l-1}(2*i,2*j-1,:)), max(pyramid_cell{l-1}(2*i-1,2*j,:), pyramid_cell{l-1}(2*i,2*j,:)));
+                    pyramid_cell{1}(i,j,:) = max(patch_codewords_transpose,[],2);
                 else
                     error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
                 end
             end
         end
-        num_bins = num_bins/2;
-    end
-    
-    % normalize
-    if (strcmp(poolNormalization,'sum'))
-        total_sum = sum(sum(texton_ind.data));
-        if total_sum == 0
-            total_sum = 1;
+        
+        %% compute histograms at the coarser levels
+        num_bins = binsHigh/2;
+        for l = 2:pyramidLevels
+            pyramid_cell{l} = zeros(num_bins, num_bins, copy_dictionarySize);
+            for i=1:num_bins
+                for j=1:num_bins
+                    if (strcmp(poolType, 'sum'))
+                        pyramid_cell{l}(i,j,:) = pyramid_cell{l-1}(2*i-1,2*j-1,:) + pyramid_cell{l-1}(2*i,2*j-1,:) + pyramid_cell{l-1}(2*i-1,2*j,:) + pyramid_cell{l-1}(2*i,2*j,:);
+                    elseif (strcmp(poolType, 'max'))
+                        pyramid_cell{l}(i,j,:) = max(max(pyramid_cell{l-1}(2*i-1,2*j-1,:), pyramid_cell{l-1}(2*i,2*j-1,:)), max(pyramid_cell{l-1}(2*i-1,2*j,:), pyramid_cell{l-1}(2*i,2*j,:)));
+                    else
+                        error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
+                    end
+                end
+            end
+            num_bins = num_bins/2;
         end
-    end
-    for l = 1:pyramidLevels
+        
+        % normalize
         if (strcmp(poolNormalization,'sum'))
-            pyramid_cell{l} = pyramid_cell{l}/total_sum;
-        elseif (strcmp(poolNormalization,'L2'))
-            denominator = sqrt(sum(pyramid_cell{l}.^2,3));
-            denominator(denominator==0)=1;
-            pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, denominator);
+            total_sum = sum(sum(texton_ind.data));
+            if total_sum == 0
+                total_sum = 1;
+            end
+        end
+        for l = 1:pyramidLevels
+            if (strcmp(poolNormalization,'sum'))
+                pyramid_cell{l} = pyramid_cell{l}/total_sum;
+            elseif (strcmp(poolNormalization,'L2'))
+                denominator = sqrt(sum(pyramid_cell{l}.^2,3));
+                denominator(denominator==0)=1;
+                pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, denominator);
+            else
+                error(['poolNormalization "' poolNormalization '" not supported! Currently only support "sum" and "L2"']);
+            end
+        end
+        
+        %% stack all the histograms with appropriate weights
+        pyramid = [];
+        if (use_pyramid_level_weights)
+            for l = 1:pyramidLevels-1
+                pyramid = [pyramid pyramid_cell{l}(:)' .* 2^(-l)];
+            end
+            pyramid = [pyramid pyramid_cell{pyramidLevels}(:)' .* 2^(1-pyramidLevels)];
         else
-            error(['poolNormalization "' poolNormalization '" not supported! Currently only support "sum" and "L2"']);
+            for l = 1:pyramidLevels-1
+                pyramid = [pyramid pyramid_cell{l}(:)'];
+            end
+            pyramid = [pyramid pyramid_cell{pyramidLevels}(:)'];
         end
+        
+        pyramid_batch{entry_idx} = pyramid;
+            
+        class_label = get_class_label(base);
+        class_label_batch{entry_idx} = class_label;
     end
     
-    %% stack all the histograms with appropriate weights
-    pyramid = [];
-    if (use_pyramid_level_weights)
-        for l = 1:pyramidLevels-1
-            pyramid = [pyramid pyramid_cell{l}(:)' .* 2^(-l)];
-        end
-        pyramid = [pyramid pyramid_cell{pyramidLevels}(:)' .* 2^(1-pyramidLevels)];
-    else
-        for l = 1:pyramidLevels-1
-            pyramid = [pyramid pyramid_cell{l}(:)'];
-        end
-        pyramid = [pyramid pyramid_cell{pyramidLevels}(:)'];
+    for entry_idx = 1:entries_per_batch
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = fullfile(dirN, base);
+        
+        outFName = fullfile(dataBaseDir, sprintf('%s_pyramid_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, pyramidLevels, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        
+        
+        % save pyramid
+        pyramid = pyramid_batch{entry_idx};
+        class_label = class_label_batch{entry_idx};
+        sp_make_dir(outFName);
+        save(outFName, 'pyramid', 'class_label');
+        
+        pyramid_all = [pyramid_all; pyramid];
+        class_label_all = [class_label_all; pyramid];
     end
-    
-    class_label = get_class_label(base);
-    
-    % save pyramid
-    save(outFName, 'pyramid', 'class_label');
-
-    pyramid_all = [pyramid_all; pyramid];
-
-    class_label_all = [class_label_all; class_label];
-end 
+end
 
 outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 save(outFName, 'pyramid_all', 'class_label_all');

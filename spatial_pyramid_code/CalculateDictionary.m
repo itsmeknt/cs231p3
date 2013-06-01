@@ -67,7 +67,7 @@ for f = 1:numTextonImages
     baseFName = fullfile(dirN, base);
     inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
 
-    load(inFName, 'features');
+    features = load(inFName, 'features');
     ndata = size(features.data,1);
 
     sift_all = [sift_all; features.data];

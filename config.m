@@ -1,8 +1,9 @@
 %% global configurations
-rng(0);
 DEFAULT_DATASET_TYPE = 'scene';
 
 RESULTS_DIR = 'results';
+epsilon = 1e-4;
+num_image_batch_size = 100;
 
 %% split_dataset_to_test_train.m configurations
 NUM_TRAINING_IMAGES_SCENE = 100;
@@ -32,7 +33,7 @@ else
     use_histogram_intersection_kernel = 0;
     use_pyramid_level_weights = 1;          % this doesnt matter if we don't use histogram intersection kernel, so to avoid recomputing all the features again, set this to 1
 end
-use_LLC = 0;
+use_LLC = 1;
 if (use_LLC)
     code_constraint = 'LLC';
     poolType = 'max';
@@ -41,8 +42,8 @@ if (use_LLC)
     NN_k = 5;
 else
     code_constraint = 'VC';
-    poolType = 'max';
-    poolNormalization = 'L2';
+    poolType = 'sum';
+    poolNormalization = 'sum';
 end
 
 % ext_param_1 governs generating histograms and compiling pyramid
@@ -55,10 +56,3 @@ ext_param_3 = 0;
 ext_param_4 = 0;
 ext_param_5 = 0;
 
-
-%% add paths
-if (use_histogram_intersection_kernel)
-    addpath('libsvm-3.17/matlab');
-else
-    addpath('liblinear-1.93/matlab');
-end

@@ -23,6 +23,14 @@ function [ ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, canSk
 %  update some of the data or if you've added new images.
 
 config;
+% duplicate variables because parfor complains otherwise
+copy_ext_param_1 = ext_param_1;
+copy_ext_param_2 = ext_param_2;
+copy_ext_param_3 = ext_param_3;
+copy_ext_param_4 = ext_param_4;
+copy_ext_param_5 = ext_param_5;
+copy_dictionarySize = dictionarySize;
+copy_numTextonImages = numTextonImages;
 fprintf('Building Histograms\n\n');
 
 %% Check cache
@@ -39,68 +47,93 @@ load(inFName,'dictionary');
 fprintf('Loaded texton dictionary: %d textons\n', dictionarySize);
 
 %% compute texton labels of patches and whole-image histograms
-H_all = [];
-
-for f = 1:size(imageFileList,1)
-
-    imageFName = imageFileList{f};
-    [dirN base] = fileparts(imageFName);
-    baseFName = fullfile(dirN, base);
-    inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
-    
-    outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-    outFName2 = fullfile(dataBaseDir, sprintf('%s_hist_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+num_batches = ceil(size(imageFileList,1))/num_image_batch_size;
+entries_per_batch = min(num_image_batch_size, size(imageFileList,1));
+for batch_idx = 1:num_batches
+    texton_ind_batch = cell(entries_per_batch,1);
+    parfor entry_idx = 1:entries_per_batch
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = fullfile(dirN, base);
         
-    if(size(dir(outFName),1)~=0 && size(dir(outFName2),1)~=0 && canSkip)
-        fprintf('Skipping %s\n', imageFName);
-        load(outFName2, 'H');
-        H_all = [H_all; H];
-        continue;
-    end
-    
-    %% load sift descriptors
-    load(inFName, 'features');
-    ndata = size(features.data,1);
-    fprintf('Loaded %s, %d descriptors\n', inFName, ndata);
-
-    %% find texton indices and compute histogram 
-    texton_ind.data = zeros(ndata, dictionarySize);         % num_patches x M dim
-    texton_ind.x = features.x;
-    texton_ind.y = features.y;
-    texton_ind.wid = features.wid;
-    texton_ind.hgt = features.hgt;
-    %run in batches to keep the memory foot print small
-    batchSize = 10000;
-    if ndata <= batchSize
-        if (strcmp(code_constraint, 'VC'))
-            dist_mat = sp_dist2(features.data, dictionary);
-            [min_dist, min_ind] = min(dist_mat, [], 2);
-            row = (1:length(min_ind))';
-            col = min_ind;
-            texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
-        elseif (strcmp(code_constraint, 'LLC'))
+        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        if(size(dir(outFName),1)~=0 && canSkip)
+            fprintf('Skipping %s\n', imageFName);
+            continue;
         end
-    else
-        for j = 1:batchSize:ndata
+        
+        %% load sift descriptors
+        inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
+        allVar = load(inFName, 'features');
+        features = allVar.features;
+        
+        fprintf('Loaded %s, %d descriptors\n', inFName, ndata);
+        ndata = size(features.data,1);
+        
+        %% find texton indices and compute histogram
+        texton_ind = [];
+        texton_ind.data = zeros(ndata, copy_dictionarySize);         % num_patches x M dim
+        texton_ind.x = features.x;
+        texton_ind.y = features.y;
+        texton_ind.wid = features.wid;
+        texton_ind.hgt = features.hgt;
+        %run in batches to keep the memory foot print small
+        batchSize = 10000;
+        if ndata <= batchSize
             if (strcmp(code_constraint, 'VC'))
-                lo = j;
-                hi = min(j+batchSize-1,ndata);
-                dist_mat = dist2(features.data(lo:hi,:), dictionary);
-                [min_dist, min_ind] = min(dist_mat, [], 2);
+                dist_mat = sp_dist2(features.data, dictionary);
+                [~, min_ind] = min(dist_mat, [], 2);
                 row = (1:length(min_ind))';
                 col = min_ind;
                 texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
             elseif (strcmp(code_constraint, 'LLC'))
+                B_knn_idxs = knnsearch(dictionary, features.data, 'K', NN_k, 'NSMethod','exhaustive','Distance','euclidean');
+                for i=1:ndata
+                    c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), epsilon);
+                    texton_ind.data(i,:) = c;
+                end
+            end
+        else
+            for j = 1:batchSize:ndata
+                lo = j;
+                hi = min(j+batchSize-1,ndata);
+                if (strcmp(code_constraint, 'VC'))
+                    dist_mat = dist2(features.data(lo:hi,:), dictionary);
+                    [~, min_ind] = min(dist_mat, [], 2);
+                    row = (1:length(min_ind))';
+                    col = min_ind;
+                    texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
+                elseif (strcmp(code_constraint, 'LLC'))
+                    B_knn_idxs = knnsearch(dictionary, features.data(lo:hi,:), 'K', NN_k, 'NSMethod','exhaustive','Distance','euclidean');
+                    for i=lo:hi
+                        c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), epsilon);
+                        texton_ind.data(i,:) = c;
+                    end
+                end
             end
         end
+        
+        texton_ind_batch{entry_idx} = texton_ind;
+        % H = hist(texton_ind.data, 1:copy_dictionarySize);
+        % H_all = [H_all; H];
     end
-
-    % H = hist(texton_ind.data, 1:dictionarySize);
-    % H_all = [H_all; H];
-
-    %% save texton indices and histograms
-    save(outFName, 'texton_ind');
-    % save(outFName2, 'H');
+    
+    for entry_idx = 1:entries_per_batch
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = fullfile(dirN, base);
+        
+        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        if(size(dir(outFName),1)~=0 && canSkip)
+            fprintf('Skipping %s\n', imageFName);
+            continue;
+        end
+        
+        %% save texton indices and histograms
+        texton_ind = texton_ind_batch{entry_idx};
+        sp_make_dir(outFName);
+        save(outFName, 'texton_ind');
+    end
 end
 
 
@@ -110,85 +143,8 @@ end
 
 end
 
-% N is a Nxd vector
-% B is a Mxd matrix
-% sigma is a real number
-% d is a NxM matrix. It is zeros if sigma <= 0
-function d = compute_d(X, B, sigma)
-if (sigma <= 0)
-    d = zeros(size(X,1), size(B,1));
-    return;
-end
 
-config;
 
-Xtensor = reshape(X, size(X,1), 1, size(X,2));   % Nx1xd dim
-Btensor = reshape(B, 1, size(B,1), size(B,2));   % 1xMxd dim
-diff = bsxfun(@minus, Xtensor, Btensor);         % NxMxd dim
-dist = sum(diff.*diff, 3);                       % NxMx1 dim
 
-% reshape tensor to matrix
-dist = reshape(dist, size(dist,1), size(dist,2));   % NxM dim
 
-if (normalizeD)
-    % normalize
-    dist = disxfun(@minus, dist, max(dist,2));      % NxM dim
-end
 
-d = exp(dist/sigma);   % NxM dim
-end
-
-% x is a 1xd vector
-% B is a Mxd vecror
-% lambda is a real number
-% sigma is a real number
-% codes is a 1xM matrix
-function c = solve_LLC_analytically(x, B, lambda, sigma)
-cov_half = B-(ones(size(x,1),1)*x);                     % Mxd dim
-cov = cov_half*cov_half;                                 % MxM dim
-
-d = compute_d(x, B, sigma);             % 1xM dim
-c_tilda = (cov + lambda*diag(d.^2)) \ ones(size(cov,1), size(cov,2));                                 % MxM dim
-
-c = (c_tilda/ones(1, size(cov,2)))'*c_tilda;                                       % 1xM dim
-end
-
-% x is a 1xd matrix
-% B is a Mxd matrix
-% lambda is a real number
-% sigma is a real number
-% c is a 1xM matrix
-function c = solve_LCC_KNN(x, B, lambda, sigma)
-config;
-B_small_knn = knnsearch(B,x,'k',NN_k,'NSMethod','exhaustive','distance','euclidean');
-B_small_idx = unique(B_small_knn(:));
-B_small = B(B_small_idx, :);            % kxd matrix
-
-c_small = solve_LLC_analytically(x, B_small, 0, 0);    % 1xk matrix. Lambda and sigma = 0 because we lose the locality term in the reduced form
-
-c = zeros(1, size(B,1));
-c(B_small_idx) = c_small;
-end
-
-% B is a Mxd matrix
-% x is a 1xd matrix
-% new_c_KNN is a 1xM matrix, gotten from solve_LCC_analytically after feature selection on B_old
-% B_feature_selection_idx is the idx of B of the features that we selected after thresholding
-% B is the updated Mxd matrix
-function B = update_B(B_feature_selected, x, new_c_KNN, B_feature_selection_idx, iterNum)
-B_feature_selected = B(B_feature_selection_idx, :);                     % mxd
-delta_B_fs = (-2*(x'-B_feature_selected'*new_c_KNN')*new_c_KNN)';       % mxd
-
-mu = sqrt(1/iterNum);
-B_new_fs = B_feature_selected - mu*delta_B_fs'/sqrt(new_c_KNN*new_c_KNN');  % mxd
-
-check = unique(find(sqrt(sum(B_new_fs.*B_new_fs,2))==0));
-if length(check) > 1 || check == 1
-    error('B_new_fs when projecting onto unit sphere, found denominator 0');
-end
-
-% project onto unit circle
-B_new_fs = bsxfun(@rdivide, B_new_fs, sqrt(sum(B_new_fs.*B_new_fs,2)));     % mxd
-
-B(B_feature_selection_idx,:) = B_new_fs;
-end

@@ -19,56 +19,83 @@ function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir,
 %  update some of the data or if you've added new images.
 
 config;
+% duplicate variables because parfor complains otherwise
+copy_ext_param_2 = ext_param_2;
+copy_ext_param_3 = ext_param_3;
+copy_ext_param_4 = ext_param_4;
+copy_ext_param_5 = ext_param_5;
 fprintf('Building Sift Descriptors\n\n');
 
-for f = 1:size(imageFileList,1)
-
-    %% load image
-    imageFName = imageFileList{f};
-    [dirN base] = fileparts(imageFName);
-    baseFName = [dirN filesep base];
-    outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-    imageFName = fullfile(imageBaseDir, imageFName);
-    
-    if(size(dir(outFName),1)~=0 && canSkip)
-        fprintf('Skipping %s\n', imageFName);
-        continue;
-    end
-    
-    I = sp_load_image(imageFName);
-
-    [hgt wid] = size(I);
-    if min(hgt,wid) > maxImageSize
-        I = imresize(I, maxImageSize/min(hgt,wid), 'bicubic');
-        fprintf('Loaded %s: original size %d x %d, resizing to %d x %d\n', ...
-            imageFName, wid, hgt, size(I,2), size(I,1));
+num_batches = ceil(size(imageFileList,1))/num_image_batch_size;
+entries_per_batch = min(num_image_batch_size, size(imageFileList,1));
+for batch_idx = 1:num_batches
+    feature_cells = cell(entries_per_batch,1);
+    parfor entry_idx = 1:entries_per_batch
+        %% load image
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = [dirN filesep base];
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        imageFName = fullfile(imageBaseDir, imageFName);
+        
+        if(size(dir(outFName),1)~=0 && canSkip)
+            fprintf('Skipping %s\n', imageFName);
+            continue;
+        end
+        
+        I = sp_load_image(imageFName);
+        
         [hgt wid] = size(I);
+        if min(hgt,wid) > maxImageSize
+            I = imresize(I, maxImageSize/min(hgt,wid), 'bicubic');
+            fprintf('Loaded %s: original size %d x %d, resizing to %d x %d\n', ...
+                imageFName, wid, hgt, size(I,2), size(I,1));
+            [hgt wid] = size(I);
+        end
+        
+        %% make grid (coordinates of upper left patch corners)
+        remX = mod(wid-patchSize,gridSpacing);
+        offsetX = floor(remX/2)+1;
+        remY = mod(hgt-patchSize,gridSpacing);
+        offsetY = floor(remY/2)+1;
+        
+        [gridX,gridY] = meshgrid(offsetX:gridSpacing:wid-patchSize+1, offsetY:gridSpacing:hgt-patchSize+1);
+        
+        fprintf('Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
+            imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
+        
+        %% find SIFT descriptors
+        siftArr = sp_find_sift_grid(I, gridX, gridY, patchSize, 0.8);
+        siftArr = sp_normalize_sift(siftArr);
+        
+        feature_cells{entry_idx}.data = siftArr;
+        feature_cells{entry_idx}.x = gridX(:) + patchSize/2 - 0.5;
+        feature_cells{entry_idx}.y = gridY(:) + patchSize/2 - 0.5;
+        feature_cells{entry_idx}.wid = wid;
+        feature_cells{entry_idx}.hgt = hgt;
+        
+        
+    end % for
+    
+    
+    for entry_idx = 1:entries_per_batch
+        
+        %% load image
+        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        [dirN base] = fileparts(imageFName);
+        baseFName = [dirN filesep base];
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        imageFName = fullfile(imageBaseDir, imageFName);
+        
+        if(size(dir(outFName),1)~=0 && canSkip)
+            fprintf('Skipping %s\n', imageFName);
+            continue;
+        end
+        
+        features = feature_cells{entry_idx};
+        sp_make_dir(outFName);
+        save(outFName, 'features');
     end
-
-    %% make grid (coordinates of upper left patch corners)
-    remX = mod(wid-patchSize,gridSpacing);
-    offsetX = floor(remX/2)+1;
-    remY = mod(hgt-patchSize,gridSpacing);
-    offsetY = floor(remY/2)+1;
-    
-    [gridX,gridY] = meshgrid(offsetX:gridSpacing:wid-patchSize+1, offsetY:gridSpacing:hgt-patchSize+1);
-
-    fprintf('Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
-             imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
-
-    %% find SIFT descriptors
-    siftArr = sp_find_sift_grid(I, gridX, gridY, patchSize, 0.8);
-    siftArr = sp_normalize_sift(siftArr);
-    
-    features.data = siftArr;
-    features.x = gridX(:) + patchSize/2 - 0.5;
-    features.y = gridY(:) + patchSize/2 - 0.5;
-    features.wid = wid;
-    features.hgt = hgt;
-
-    sp_make_dir(outFName);
-    save(outFName, 'features');
-
-end % for
+end
 
 end % function

@@ -1,5 +1,5 @@
 function [train_evaluation test_evaluation] = classify(dataset_base_dir, use_feature_cache)
-
+startTime = tic;
 % dataset_base_dir: the base directory for the image files
 % feature_cache_dir: the base directory for the data files that are generated
 %  by the features. If this dir is the same as imageBaseDir the files
@@ -7,6 +7,7 @@ function [train_evaluation test_evaluation] = classify(dataset_base_dir, use_fea
 % use_feature_cache: uses cached data from the previous run of feature generation
 
 % load config
+rng(0);
 config;
 
 % set defaults
@@ -28,14 +29,15 @@ filenames_test = get_image_filenames(dataset_test_dir);
 % generate dictionary
 generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir, feature_cache_test_dir, use_feature_cache);
 
-
 % train + training evaluation
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
 if (use_histogram_intersection_kernel)
+    addpath('libsvm-3.17/matlab');
     K_train = [(1:size(training_features,1))', hist_isect_c(training_features, training_features)];
     model = svmtrain(training_labels, K_train, '-t 4');
     [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
 else 
+    addpath('liblinear-1.93/matlab');
     model = train(training_labels, sparse(training_features));
     [predicted_train_labels, ~, ~] = predict(training_labels, sparse(training_features), model);
 end
@@ -65,7 +67,9 @@ ss = int64(date_and_time(6));
 dataset_name = dataset_base_dir;
 dataset_name(dataset_name=='/')='-';
 outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', y, m, d, hh, mm ,ss, dataset_name, use_histogram_intersection_kernel, dictionarySize, numTextonImages, pyramidLevels, gridSpacing, patchSize, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5)];
-save(outFName, 'train_evaluation', 'test_evaluation');  
+save(outFName, 'train_evaluation', 'test_evaluation'); 
+
+endTime = toc(startTime);
 end
 
 function [filenames] = get_image_filenames(image_dir)
