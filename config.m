@@ -14,9 +14,8 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 USE_FEATURE_CACHE_DEFAULT = 1;
 
 % feature configurations
-reduce_dictionary = 1;
+reduce_dictionary = 0;
 ndata_max = 100000;
-
 maxImageSize = 1000;
 dictionarySize = 400;
 numTextonImages = 1000;
@@ -43,15 +42,15 @@ else
     poolType = 'sum';
     poolNormalization = 'sum';
 end
-ext_param_1 = use_LLC;
-ext_param_2 = strcmp(code_constraint, 'VC');
-ext_param_3 = ~use_pyramid_level_weights;
-ext_param_4 = strcmp(poolType, 'sum');
-ext_param_5 = strcmp(poolNormalization, 'sum');
+
+ext_param_1 = 10000*use_LLC + 1000*strcmp(code_constraint, 'VC') + 100*(~use_pyramid_level_weights) + 10*strcmp(poolType, 'sum') + strcmp(poolNormalization, 'sum');
+ext_param_2 = 0;
+ext_param_3 = 0;
+ext_param_4 = 0;
+ext_param_5 = 0;
 
 
 %% add paths
-addpath('spatial_pyramid_code');
 if (use_histogram_intersection_kernel)
     addpath('libsvm-3.17/matlab');
 else
