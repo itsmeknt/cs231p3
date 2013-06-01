@@ -12,6 +12,19 @@ NUM_TRAINING_IMAGES_SCENE = 100;
 %% classify.m configurations
 % defaults
 USE_FEATURE_CACHE_DEFAULT = 1;
+
+% feature configurations
+reduce_dictionary = 1;
+ndata_max = 100000;
+
+maxImageSize = 1000;
+dictionarySize = 400;
+numTextonImages = 1000;
+pyramidLevels = 4;
+
+gridSpacing = 8;
+patchSize = 16;
+
 use_pyramid_match_kernel = 1;
 if (use_pyramid_match_kernel)
     use_histogam_intersection_kernel = 1;
@@ -30,16 +43,6 @@ else
     poolType = 'sum';
     poolNormalization = 'sum';
 end
-
-% feature configurations
-maxImageSize = 1000;
-dictionarySize = 400;
-numTextonImages = 1000;
-pyramidLevels = 4;
-
-gridSpacing = 8;
-patchSize = 16;
-
 ext_param_1 = use_LLC;
 ext_param_2 = strcmp(code_constraint, 'VC');
 ext_param_3 = ~use_pyramid_level_weights;
