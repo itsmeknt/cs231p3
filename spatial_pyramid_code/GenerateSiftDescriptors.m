@@ -46,7 +46,7 @@ for f = 1:size(imageFileList,1)
     imageFName = imageFileList{f};
     [dirN base] = fileparts(imageFName);
     baseFName = [dirN filesep base];
-    outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+    outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', 0, 0, 0, 0, 0, 0));
     imageFName = fullfile(imageBaseDir, imageFName);
     
     if(size(dir(outFName),1)~=0 && canSkip)
