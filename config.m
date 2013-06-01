@@ -37,6 +37,7 @@ if (use_LLC)
     code_constraint = 'LLC';
     poolType = 'max';
     poolNormalization = 'L2';
+    normalizeD = 1;
 else
     code_constraint = 'VC';
     poolType = 'sum';
