@@ -3,7 +3,7 @@
 3. weak against textureless ess animals (e.g. cougar, beaver in caltech 101), thin object classification (e.g. ants)
 
 -use_pyramid_level_weight = 1 for both 
-
+-concatenate various scales of SIFT, learn codebook among all of them
 
 % questions
 typo on equation 7 of LLC paper?

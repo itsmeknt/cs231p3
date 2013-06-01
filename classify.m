@@ -69,7 +69,7 @@ dataset_name(dataset_name=='/')='-';
 outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', y, m, d, hh, mm ,ss, dataset_name, use_histogram_intersection_kernel, dictionarySize, numTextonImages, pyramidLevels, gridSpacing, patchSize, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5)];
 save(outFName, 'train_evaluation', 'test_evaluation'); 
 
-endTime = toc(startTime);
+endTime = toc(startTime)
 end
 
 function [filenames] = get_image_filenames(image_dir)

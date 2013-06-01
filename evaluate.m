@@ -17,11 +17,11 @@ class_list = unique([predicted_label; true_label]);
 class_accuracies = zeros(length(class_list), 1);
 for i=1:length(class_list)
    curr_class = class_list(i);
-   true_class_binary = (true_label == curr_class);
-   num_class = sum(true_class_binary);
    
+   true_class_binary = (true_label == curr_class);
    predicted_class_binary = (predicted_label == curr_class);
    num_correct_class = sum(predicted_class_binary & true_class_binary);
+   num_class = sum(predicted_class_binary | true_class_binary);
    
    class_accuracies(i) = num_correct_class/num_class;
 end

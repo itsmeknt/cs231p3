@@ -20,26 +20,29 @@ function [] = GenerateSiftDescriptors( imageFileList, imageBaseDir, dataBaseDir,
 
 config;
 % duplicate variables because parfor complains otherwise
-copy_ext_param_2 = ext_param_2;
 copy_ext_param_3 = ext_param_3;
 copy_ext_param_4 = ext_param_4;
 copy_ext_param_5 = ext_param_5;
+copy_num_image_batch_size = num_image_batch_size;
 fprintf('Building Sift Descriptors\n\n');
 
-num_batches = ceil(size(imageFileList,1))/num_image_batch_size;
-entries_per_batch = min(num_image_batch_size, size(imageFileList,1));
+num_batches = ceil(size(imageFileList,1)/num_image_batch_size);
 for batch_idx = 1:num_batches
+    entries_per_batch = min(copy_num_image_batch_size, size(imageFileList,1)-copy_num_image_batch_size*(batch_idx-1));
+    if (size(imageFileList,1) < copy_num_image_batch_size)
+        entries_per_batch = size(imageFileList,1);
+    end
     feature_cells = cell(entries_per_batch,1);
     parfor entry_idx = 1:entries_per_batch
         %% load image
-        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
         baseFName = [dirN filesep base];
-        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
         imageFName = fullfile(imageBaseDir, imageFName);
         
         if(size(dir(outFName),1)~=0 && canSkip)
-            fprintf('Skipping %s\n', imageFName);
+            fprintf('Skipping GenerateSiftDescriptors %s\n', imageFName);
             continue;
         end
         
@@ -48,7 +51,7 @@ for batch_idx = 1:num_batches
         [hgt wid] = size(I);
         if min(hgt,wid) > maxImageSize
             I = imresize(I, maxImageSize/min(hgt,wid), 'bicubic');
-            fprintf('Loaded %s: original size %d x %d, resizing to %d x %d\n', ...
+            fprintf('Generating SIFT descriptors for %s: original size %d x %d, resizing to %d x %d\n', ...
                 imageFName, wid, hgt, size(I,2), size(I,1));
             [hgt wid] = size(I);
         end
@@ -81,14 +84,14 @@ for batch_idx = 1:num_batches
     for entry_idx = 1:entries_per_batch
         
         %% load image
-        imageFName = imageFileList{entry_idx+entries_per_batch*(batch_idx-1)};
+        imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
         baseFName = [dirN filesep base];
-        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
         imageFName = fullfile(imageBaseDir, imageFName);
         
         if(size(dir(outFName),1)~=0 && canSkip)
-            fprintf('Skipping %s\n', imageFName);
+            fprintf('Skipping GenerateSiftDescriptors %s\n', imageFName);
             continue;
         end
         
