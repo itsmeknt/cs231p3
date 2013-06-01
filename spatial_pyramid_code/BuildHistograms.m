@@ -92,6 +92,7 @@ for f = 1:size(imageFileList,1)
             row = min_ind;
             col = 1:length(min_ind);
             texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
+        elseif (strcmp(code_constraint, 'LLC'))
         end
     else
         for j = 1:batchSize:ndata
@@ -103,6 +104,7 @@ for f = 1:size(imageFileList,1)
                 row = min_ind;
                 col = 1:length(min_ind);
                 texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
+            elseif (strcmp(code_constraint, 'LLC'))
             end
         end
     end
