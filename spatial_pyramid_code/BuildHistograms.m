@@ -91,7 +91,7 @@ for f = 1:size(imageFileList,1)
             [min_dist, min_ind] = min(dist_mat, [], 2);
             row = min_ind;
             col = 1:length(min_ind);
-            texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
+            texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
         elseif (strcmp(code_constraint, 'LLC'))
         end
     else
@@ -103,7 +103,7 @@ for f = 1:size(imageFileList,1)
                 [min_dist, min_ind] = min(dist_mat, [], 2);
                 row = min_ind;
                 col = 1:length(min_ind);
-                texton_ind.data(sub2ind(size(texton_ind.data),row,col) = 1;
+                texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
             elseif (strcmp(code_constraint, 'LLC'))
             end
         end
@@ -117,9 +117,92 @@ for f = 1:size(imageFileList,1)
     % save(outFName2, 'H');
 end
 
+
 %% save histograms of all images in this directory in a single file
 % outFName = fullfile(dataBaseDir, sprintf('histograms_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
 % save(outFName, 'H_all', '-ascii');
 
+end
 
+% N is a Nxd vector
+% B is a Mxd matrix
+% sigma is a real number
+% d is a NxM matrix. It is zeros if sigma <= 0
+function d = compute_d(X, B, sigma)
+if (sigma <= 0)
+    d = zeros(size(X,1), size(B,1));
+    return;
+end
+
+config;
+
+Xtensor = reshape(X, size(X,1), 1, size(X,2));   % Nx1xd dim
+Btensor = reshape(B, 1, size(B,1), size(B,2));   % 1xMxd dim
+diff = bsxfun(@minus, Xtensor, Btensor);         % NxMxd dim
+dist = sum(diff.*diff, 3);                       % NxMx1 dim
+
+% reshape tensor to matrix
+dist = reshape(dist, size(dist,1), size(dist,2));   % NxM dim
+
+if (normalizeD)
+    % normalize
+    dist = disxfun(@minus, dist, max(dist,2));      % NxM dim
+end
+
+d = exp(dist/sigma);   % NxM dim
+end
+
+% x is a 1xd vector
+% B is a Mxd vecror
+% lambda is a real number
+% sigma is a real number
+% codes is a 1xM matrix
+function c = solve_LLC_analytically(x, B, lambda, sigma)
+cov_half = B-(ones(size(x,1),1)*x);                     % Mxd dim
+cov = cov_half*cov_half;                                 % MxM dim
+
+d = compute_d(x, B, sigma);             % 1xM dim
+c_tilda = (cov + lambda*diag(d.^2)) \ ones(size(cov,1), size(cov,2));                                 % MxM dim
+
+c = (c_tilda/ones(1, size(cov,2))'*c_tilda;                                       % 1xM dim
+end
+
+% x is a 1xd matrix
+% B is a Mxd matrix
+% lambda is a real number
+% sigma is a real number
+% c is a 1xM matrix
+function c = solve_LCC_KNN(x, B, lambda, sigma)
+config;
+B_small_knn = knnsearch(B,x,'k',NN_k,'NSMethod','exhaustive','distance','euclidean');
+B_small_idx = unique(B_small_knn(:));
+B_small = B(B_small_idx, :);            % kxd matrix
+
+c_small = solve_LLC_analytically(x, B_small, 0, 0);    % 1xk matrix. Lambda and sigma = 0 because we lose the locality term in the reduced form
+
+c = zeros(1, size(B,1));
+c(B_small_idx) = c_small;
+end
+
+% B is a Mxd matrix
+% x is a 1xd matrix
+% new_c_KNN is a 1xM matrix, gotten from solve_LCC_analytically after feature selection on B_old
+% B_feature_selection_idx is the idx of B of the features that we selected after thresholding
+% B is the updated Mxd matrix
+function B = update_B(B_feature_selected, x, new_c_KNN, B_feature_selection_idx, iterNum)
+B_feature_selected = B(B_feature_selection_idx, :);                     % mxd
+delta_B_fs = (-2*(x'-B_feature_selected'*new_c_KNN')*new_c_KNN)';       % mxd
+
+mu = sqrt(1/iterNum);
+B_new_fs = B_feature_selected - mu*delta_B_fs'/sqrt(new_c_KNN*new_c_KNN');  % mxd
+
+check = unique(find(sqrt(sum(B_new_fs.*B_new_fs,2))==0));
+if length(check) > 1 || check == 1
+    error('B_new_fs when projecting onto unit sphere, found denominator 0');
+end
+
+% project onto unit circle
+B_new_fs = bsxfun(@rdivide, B_new_fs, sqrt(sum(B_new_fs.*B_new_fs,2)));     % mxd
+
+B(B_feature_selection_idx,:) = B_new_fs;
 end
