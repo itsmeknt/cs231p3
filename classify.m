@@ -56,6 +56,18 @@ end
 train_evaluation
 test_evaluation
 
+c_vals = [0.01, 0.5, 0.1, 0.5, 1, 2, 5, 10, 15, 20, 50, 100]; 
+for i=1:length(c_vals)
+    c = c_vals(i)
+    opt = ['-t 4 -c ' num2str(c)];
+    model = svmtrain(training_labels, K_train, opt);
+    [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
+    [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
+    [train_evaluation] = evaluate(predicted_train_labels, training_labels)
+    [test_evaluation] = evaluate(predicted_test_labels, testing_labels)
+end
+    
+
 date_and_time = clock;
 y = int64(date_and_time(1));
 m = int64(date_and_time(2));

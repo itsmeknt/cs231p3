@@ -18,7 +18,7 @@ USE_FEATURE_CACHE_DEFAULT = 1;
 reduce_dictionary = 1;
 ndata_max = 100000;
 maxImageSize = 1000;
-dictionarySize = 200;
+dictionarySize = 400;
 numTextonImages = 1000;
 pyramidLevels = 3;
 

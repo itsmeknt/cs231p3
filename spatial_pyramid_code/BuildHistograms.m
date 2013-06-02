@@ -23,7 +23,6 @@ function [ ] = BuildHistograms( imageFileList, dataBaseDir, featureSuffix, canSk
 %  update some of the data or if you've added new images.
 
 config;
-canSkip = 0;
 % duplicate variables because parfor complains otherwise
 copy_ext_param_1 = ext_param_1;
 copy_ext_param_2 = ext_param_2;
