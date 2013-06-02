@@ -81,7 +81,7 @@ else
     end
     %}
 
-    use_pyramid_match_kernel = 0;
+    R = randperm(size(imageFileList,1));
     sp_make_dir(inFName);
     save(inFName, 'R', '-ascii');
 end

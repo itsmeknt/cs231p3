@@ -47,7 +47,7 @@ class_label_all = zeros(size(imageFileList, 1),1);
 
 %% Check cache
 outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, copy_pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-if (size(dir(outFName), 1) ~= 0)
+if (canSkip && size(dir(outFName), 1) ~= 0)
     fprintf('Loading full pyramid cache...');
     load(outFName, 'pyramid_all', 'class_label_all');
     return;

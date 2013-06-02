@@ -1,4 +1,4 @@
-function [train_evaluation test_evaluation] = classify(dataset_base_dir, use_feature_cache)
+function [train_evaluations test_evaluations test_accuracies c_vals] = classify(dataset_base_dir, use_feature_cache)
 startTime = tic;
 % dataset_base_dir: the base directory for the image files
 % feature_cache_dir: the base directory for the data files that are generated
@@ -31,6 +31,7 @@ generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir,
 
 % train + training evaluation
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
+training_labels = double(training_labels);
 if (use_histogram_intersection_kernel)
     addpath('libsvm-3.17/matlab');
     K_train = [(1:size(training_features,1))', hist_isect_c(training_features, training_features)];
@@ -45,6 +46,7 @@ end
 
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
+testing_labels = double(testing_labels);
 if (use_histogram_intersection_kernel)
     K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, training_features)];
     [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
@@ -55,18 +57,6 @@ end
 
 train_evaluation
 test_evaluation
-
-c_vals = [0.01, 0.5, 0.1, 0.5, 1, 2, 5, 10, 15, 20, 50, 100]; 
-for i=1:length(c_vals)
-    c = c_vals(i)
-    opt = ['-t 4 -c ' num2str(c)];
-    model = svmtrain(training_labels, K_train, opt);
-    [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
-    [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 
-    [train_evaluation] = evaluate(predicted_train_labels, training_labels)
-    [test_evaluation] = evaluate(predicted_test_labels, testing_labels)
-end
-    
 
 date_and_time = clock;
 y = int64(date_and_time(1));
@@ -80,6 +70,34 @@ dataset_name = dataset_base_dir;
 dataset_name(dataset_name=='/')='-';
 outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', y, m, d, hh, mm ,ss, dataset_name, use_histogram_intersection_kernel, dictionarySize, numTextonImages, pyramidLevels, gridSpacing, patchSize, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5)];
 save(outFName, 'train_evaluation', 'test_evaluation'); 
+
+
+train_evaluations = [];
+test_evaluations = [];
+test_accuracies = [];
+c_vals = [0.01, 0.5, 0.1, 0.5, 1, 2, 5, 10, 15, 20, 50, 100, 500, 1000, 5000, 10000];
+for i=1:length(c_vals)
+    c = c_vals(i)
+    if (use_histogram_intersection_kernel)
+        opt = ['-q -t 4 -c ' num2str(c)];
+        model = svmtrain(training_labels, K_train, opt);
+        [predicted_train_labels, ~, ~] = svmpredict(training_labels, K_train, model);
+        [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model);
+    else
+        opt = ['-q -c ' num2str(c)];
+        model = train(training_labels, sparse(training_features), opt);
+        [predicted_train_labels, ~, ~] = predict(training_labels, sparse(training_features), model);
+        [predicted_test_labels, ~, ~] = predict(testing_labels, sparse(testing_features), model);
+        
+    end
+    
+    [train_evaluation] = evaluate(predicted_train_labels, training_labels)
+    [test_evaluation] = evaluate(predicted_test_labels, testing_labels)
+    
+    train_evaluations = [train_evaluations; train_evaluation];
+    test_evaluations = [test_evaluations; test_evaluation];
+    test_accuracies = [test_accuracies; test_evaluation.mean_class_accuracy];
+end
 
 endTime = toc(startTime)
 end
