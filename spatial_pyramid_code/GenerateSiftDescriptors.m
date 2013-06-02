@@ -23,7 +23,10 @@ config;
 copy_ext_param_3 = ext_param_3;
 copy_ext_param_4 = ext_param_4;
 copy_ext_param_5 = ext_param_5;
+copy_maxImageSize = maxImageSize;
 copy_num_image_batch_size = num_image_batch_size;
+copy_patchSize = patchSize;
+copy_gridSpacing = gridSpacing;
 fprintf('Building Sift Descriptors\n\n');
 
 num_batches = ceil(size(imageFileList,1)/num_image_batch_size);
@@ -49,31 +52,31 @@ for batch_idx = 1:num_batches
         I = sp_load_image(imageFName);
         
         [hgt wid] = size(I);
-        if min(hgt,wid) > maxImageSize
-            I = imresize(I, maxImageSize/min(hgt,wid), 'bicubic');
-            fprintf('Generating SIFT descriptors for %s: original size %d x %d, resizing to %d x %d\n', ...
-                imageFName, wid, hgt, size(I,2), size(I,1));
+        if min(hgt,wid) > copy_maxImageSize
+            I = imresize(I, copy_maxImageSize/min(hgt,wid), 'bicubic');
+            fprintf('%d/%d Generating SIFT descriptors for %s: original size %d x %d, resizing to %d x %d\n', ...
+                (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), imageFName, wid, hgt, size(I,2), size(I,1));
             [hgt wid] = size(I);
         end
         
         %% make grid (coordinates of upper left patch corners)
-        remX = mod(wid-patchSize,gridSpacing);
+        remX = mod(wid-copy_patchSize,copy_gridSpacing);
         offsetX = floor(remX/2)+1;
-        remY = mod(hgt-patchSize,gridSpacing);
+        remY = mod(hgt-copy_patchSize,copy_gridSpacing);
         offsetY = floor(remY/2)+1;
         
-        [gridX,gridY] = meshgrid(offsetX:gridSpacing:wid-patchSize+1, offsetY:gridSpacing:hgt-patchSize+1);
+        [gridX,gridY] = meshgrid(offsetX:copy_gridSpacing:wid-copy_patchSize+1, offsetY:copy_gridSpacing:hgt-copy_patchSize+1);
         
         fprintf('Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
             imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
         
         %% find SIFT descriptors
-        siftArr = sp_find_sift_grid(I, gridX, gridY, patchSize, 0.8);
+        siftArr = sp_find_sift_grid(I, gridX, gridY, copy_patchSize, 0.8);
         siftArr = sp_normalize_sift(siftArr);
         
         feature_cells{entry_idx}.data = siftArr;
-        feature_cells{entry_idx}.x = gridX(:) + patchSize/2 - 0.5;
-        feature_cells{entry_idx}.y = gridY(:) + patchSize/2 - 0.5;
+        feature_cells{entry_idx}.x = gridX(:) + copy_patchSize/2 - 0.5;
+        feature_cells{entry_idx}.y = gridY(:) + copy_patchSize/2 - 0.5;
         feature_cells{entry_idx}.wid = wid;
         feature_cells{entry_idx}.hgt = hgt;
         

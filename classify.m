@@ -31,7 +31,6 @@ generate_dictionary(filenames_train, dataset_train_dir, feature_cache_train_dir,
 
 % train + training evaluation
 [training_features training_labels] = compute_features(filenames_train, dataset_train_dir, feature_cache_train_dir, use_feature_cache);
-training_labels = double(training_labels);
 if (use_histogram_intersection_kernel)
     addpath('libsvm-3.17/matlab');
     K_train = [(1:size(training_features,1))', hist_isect_c(training_features, training_features)];
@@ -46,7 +45,6 @@ end
 
 % test - make predictions
 [testing_features testing_labels] = compute_features(filenames_test, dataset_test_dir, feature_cache_test_dir, use_feature_cache);
-testing_labels = double(testing_labels);
 if (use_histogram_intersection_kernel)
     K_test = [(1:size(testing_features,1))', hist_isect_c(testing_features, training_features)];
     [predicted_test_labels, ~, ~] = svmpredict(testing_labels, K_test, model); 

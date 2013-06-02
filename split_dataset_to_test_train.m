@@ -1,11 +1,11 @@
-function [ ] = split_dataset_to_test_train(dataset_dir, dataset_type)
+function [ ] = split_dataset_to_test_train(dataset_dir, dataset_type, randSeed)
 % dataset_dir should have the same folder structure as downloaded
 % (e.g. dataset_dir/class/unlabeled_images for the dataset_dir 'scene_categories'
 % or dataset_dir/class/test-and-train-dirs for the dataset_dir
 % 'norm_ppmi_12class/norm_image/play_instrument')
 
 config;
-
+rng(randSeed);
 out_base_dir = get_dataset_base_dir(dataset_type);
 if (isempty(dir(out_base_dir)))
     mkdir(out_base_dir);

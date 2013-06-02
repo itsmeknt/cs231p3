@@ -44,7 +44,7 @@ end
 
 %% load file list and determine indices of training images
 
-inFName = fullfile(dataBaseDir, 'f_order.txt');
+inFName = fullfile(dataBaseDir, sprintf('f_order_%d.txt',balance_dictionary_training));
 if ~isempty(dir(inFName))
     R = load(inFName, '-ascii');
     if(size(R,1)~=size(imageFileList,1))
@@ -123,7 +123,7 @@ for batch_idx = 1:num_batches
         features = allVar.features;
         
         sift_all_batch{entry_idx} = features.data;
-        fprintf('Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
+        fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
     end
     
     totalPatches = 0;
@@ -151,6 +151,12 @@ if (reduce_dictionary > 0) && (ndata > ndata_max)
     sift_all = sift_all(p(1:ndata_max),:);
 end
         
+% free up some memory
+clear currSift;
+clear R;
+clear imageFileList;
+clear p;
+clear training_indices;
 %% perform clustering
 options = foptions;
 options(1) = 1; % display
@@ -159,12 +165,13 @@ options(3) = 0.1; % precision
 options(5) = 1; % initialization
 options(14) = 100; % maximum iterations
 
-centers = zeros(numCodewords, size(sift_all,2));
+%centers = zeros(numCodewords, size(sift_all,2));
 
 %% run kmeans
 fprintf('\nRunning k-means\n');
-dictionary = sp_kmeans(centers, sift_all, options);     % Mxd dim
-
+%dictionary = sp_kmeans(centers, sift_all, options);     % Mxd dim
+opts = statset('Display','iter');
+[~, dictionary] = kmeans(sift_all, numCodewords, 'Options', opts);
 if (writeFile)
     fprintf('Saving texton dictionary\n');
     sp_make_dir(outFName);
