@@ -34,6 +34,8 @@ if (use_LLC)
     normalizeD = 1;
     NN_k = 5;
     use_pyramid_match_kernel = 0;
+    lambda = 500;
+    sigma = 100;
 else
     code_constraint = 'VC';
     poolType = 'sum';
