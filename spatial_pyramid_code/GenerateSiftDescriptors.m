@@ -41,7 +41,7 @@ for batch_idx = 1:num_batches
         imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
         baseFName = [dirN filesep base];
-        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, 0, copy_ext_param_5));
         imageFName = fullfile(imageBaseDir, imageFName);
         
         if(size(dir(outFName),1)~=0 && canSkip)
@@ -90,7 +90,7 @@ for batch_idx = 1:num_batches
         imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
         baseFName = [dirN filesep base];
-        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_sift_ext_%d_%d_%d_%d_%d.mat', baseFName, 0, 0, copy_ext_param_3, 0, copy_ext_param_5));
         imageFName = fullfile(imageBaseDir, imageFName);
         
         if(size(dir(outFName),1)~=0 && canSkip)

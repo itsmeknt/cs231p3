@@ -30,7 +30,7 @@ copy_num_image_batch_size = num_image_batch_size;
 
 fprintf('Building Dictionary\n\n');
 
-outFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+outFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, 0, ext_param_5));
 
 if(numTextonImages > size(imageFileList,1))
     numTextonImages = size(imageFileList,1);
@@ -40,7 +40,8 @@ if(size(dir(outFName),1)~=0 && canSkip)
     fprintf('Dictionary file %s already exists.\n', outFName);
     return;
 end
-    
+
+outFNameKmeans = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2_k_means, ext_param_3, 0, ext_param_5));
 
 %% load file list and determine indices of training images
 
@@ -53,34 +54,6 @@ if ~isempty(dir(inFName))
         save(inFName, 'R', '-ascii');
     end
 else
-    %{
-    imageFileIdxByClass = cell(0,1);
-    for i=1:size(imageFileList,1)
-        imageFName = imageFileList{i};
-        classIdx = get_class_label(imageFName);
-        if (length(imageFileIdxByClass) < classIdx || isempty(imageFileIdxByClass{classIdx}))
-            imageFileIdxByClass{classIdx} = i;
-        else
-            imageFileIdxByClass{classIdx} = [imageFileIdxByClass{classIdx}; i];
-        end
-    end
-    
-    R = [];
-    numFilesLeft = size(imageFileList,1);
-    while (numFilesLeft > 0)
-        for i=1:length(imageFileIdxByClass)
-            classIdxList = imageFileIdxByClass{i};
-            if (~isempty(classIdxList))
-                % get last element
-                R = [R; classIdxList(end)];
-                classIdxList(end) = [];
-                
-                numFilesLeft=numFilesLeft-1;
-            end
-        end
-    end
-    %}
-
     R = randperm(size(imageFileList,1));
     sp_make_dir(inFName);
     save(inFName, 'R', '-ascii');
@@ -103,7 +76,7 @@ dim_data = size(features.data,2);
 
 % load all sift features onto sift_al
 sift_all = [];
-    
+
 num_batches = ceil(size(imageFileList,1)/num_image_batch_size);
 for batch_idx = 1:num_batches
     entries_per_batch = min(copy_num_image_batch_size, numTextonImages-copy_num_image_batch_size*(batch_idx-1));
@@ -123,7 +96,7 @@ for batch_idx = 1:num_batches
         features = allVar.features;
         
         sift_all_batch{entry_idx} = features.data;
-        fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
+        fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), numTextonImages, inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
     end
     
     totalPatches = 0;
@@ -144,34 +117,61 @@ end
 
 fprintf('\nTotal descriptors loaded: %d\n', size(sift_all,1));
 
-ndata = size(sift_all,1);    
+ndata = size(sift_all,1);
 if (reduce_dictionary > 0) && (ndata > ndata_max)
     fprintf('Reducing to %d descriptors\n', ndata_max);
     p = randperm(ndata);
     sift_all = sift_all(p(1:ndata_max),:);
 end
-        
+
 % free up some memory
 clear currSift;
 clear R;
 clear imageFileList;
 clear p;
 clear training_indices;
-%% perform clustering
-options = foptions;
-options(1) = 1; % display
-options(2) = 1;
-options(3) = 0.1; % precision
-options(5) = 1; % initialization
-options(14) = 100; % maximum iterations
+    
+% do k-means on dictionary
+if (~use_learned_dictionary || size(dir(outFNameKmeans),1)==0 || ~canSkip)
+    %% perform clustering
+    options = foptions;
+    options(1) = 1; % display
+    options(2) = 1;
+    options(3) = 0.1; % precision
+    options(5) = 1; % initialization
+    options(14) = 100; % maximum iterations
+    
+    %centers = zeros(numCodewords, size(sift_all,2));
+    
+    %% run kmeans
+    fprintf('\nRunning k-means\n');
+    %dictionary = sp_kmeans(centers, sift_all, options);     % Mxd dim
+    opts = statset('Display','iter');
+    [~, dictionary] = kmeans(sift_all, numCodewords, 'EmptyAction', 'singleton', 'Options', opts);
+else
+    load(outFNameKmeans, 'dictionary');
+end
 
-%centers = zeros(numCodewords, size(sift_all,2));
+if (use_learned_dictionary)
+    iter = 0;
+    for i=1:dictionary_learning_max_iter
+        for j=1:size(sift_all,1)
+            j
+            iter = iter+1;
+            
+            x = sift_all(j,:);
+            c = solve_LLC_analytically(x, dictionary, LLC_lambda, LLC_sigma, epsilon, normalizeD);
+            dictionary_feature_selection_idx = abs(c) > significant_code_threshold;
+            
+            fprintf('%d\n', sum(dictionary_feature_selection_idx))
+            
+            dictionary_reduced = dictionary(dictionary_feature_selection_idx,:);
+            c_tilda = solve_LLC_analytically(x, dictionary_reduced, 0, 0, epsilon, normalizeD);
+            dictionary = update_dictionary(dictionary, x, c_tilda, dictionary_feature_selection_idx, iter);
+        end
+    end
+end
 
-%% run kmeans
-fprintf('\nRunning k-means\n');
-%dictionary = sp_kmeans(centers, sift_all, options);     % Mxd dim
-opts = statset('Display','iter');
-[~, dictionary] = kmeans(sift_all, numCodewords, 'Options', opts);
 if (writeFile)
     fprintf('Saving texton dictionary\n');
     sp_make_dir(outFName);

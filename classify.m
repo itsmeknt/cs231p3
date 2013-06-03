@@ -73,7 +73,7 @@ save(outFName, 'train_evaluation', 'test_evaluation');
 train_evaluations = [];
 test_evaluations = [];
 test_accuracies = [];
-c_vals = [0.01, 0.5, 0.1, 0.5, 1, 2, 5, 10, 15, 20, 50, 100, 500, 1000, 5000, 10000];
+c_vals = [0.01, 0.5, 0.1, 0.3, 0.5, 0.75, 1, 2, 5, 10, 15, 20, 50, 100, 500, 1000, 5000, 10000];
 for i=1:length(c_vals)
     c = c_vals(i)
     if (use_histogram_intersection_kernel)

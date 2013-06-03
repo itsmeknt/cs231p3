@@ -32,6 +32,7 @@ copy_ext_param_5 = ext_param_5;
 copy_dictionarySize = dictionarySize;
 copy_numTextonImages = numTextonImages;
 copy_code_constraint = code_constraint;
+copy_normalizeD = normalizeD;
 if (strcmp(copy_code_constraint, 'LLC'))
     copy_NN_k = NN_k;
     copy_epsilon = epsilon;
@@ -42,7 +43,7 @@ fprintf('Building Histograms\n\n');
 
 %% load texton dictionary (all texton centers)
 
-inFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
+inFName = fullfile(dataBaseDir, sprintf('dictionary_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, 0, ext_param_2, ext_param_3, 0, ext_param_5));
 allVar = load(inFName,'dictionary');
 dictionary = allVar.dictionary;
 
@@ -61,7 +62,7 @@ for batch_idx = 1:num_batches
         [dirN base] = fileparts(imageFName);
         baseFName = fullfile(dirN, base);
         
-        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, 0, copy_ext_param_5));
         if(size(dir(outFName),1)~=0 && canSkip)
             fprintf('Skipping BuildHistogram %s\n', imageFName);
             continue;
@@ -93,7 +94,7 @@ for batch_idx = 1:num_batches
             elseif (strcmp(copy_code_constraint, 'LLC'))
                 B_knn_idxs = knnsearch(dictionary, features.data, 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
                 for i=1:ndata
-                    c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon);
+                    c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
                     texton_ind.data(i,:) = c;
                 end
             else
@@ -112,7 +113,7 @@ for batch_idx = 1:num_batches
                 elseif (strcmp(copy_code_constraint, 'LLC'))
                     B_knn_idxs = knnsearch(dictionary, features.data(lo:hi,:), 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
                     for i=lo:hi
-                        c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon);
+                        c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
                         texton_ind.data(i,:) = c;
                     end
                 else
@@ -131,7 +132,7 @@ for batch_idx = 1:num_batches
         [dirN base] = fileparts(imageFName);
         baseFName = fullfile(dirN, base);
         
-        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, copy_ext_param_4, copy_ext_param_5));
+        outFName = fullfile(dataBaseDir, sprintf('%s_texton_ind_%d_%d_ext_%d_%d_%d_%d_%d.mat', baseFName, copy_dictionarySize, copy_numTextonImages, copy_ext_param_1, copy_ext_param_2, copy_ext_param_3, 0, copy_ext_param_5));
         if(size(dir(outFName),1)~=0 && canSkip)
             fprintf('Skipping BuildHistogram %s\n', imageFName);
             continue;
