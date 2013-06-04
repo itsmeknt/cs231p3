@@ -50,7 +50,9 @@ outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_
 if (canSkip && size(dir(outFName), 1) ~= 0)
     fprintf('Loading full pyramid cache...');
     load(outFName, 'pyramid_all', 'class_label_all');
-    return;
+    if exist('pyramid_all', 'var')
+        return;
+    end
 end
 
 
@@ -85,36 +87,38 @@ for batch_idx = 1:num_batches
         %% load texton indices
         in_fname = fullfile(dataBaseDir, sprintf('%s%s', baseFName, textonSuffix));
         allVar = load(in_fname, 'texton_ind');
-        texton_ind = allVar.texton_ind;
+        texton_ind_arr = allVar.texton_ind;
         
         %% get width and height of input image
-        wid = texton_ind.wid;
-        hgt = texton_ind.hgt;
+        wid = texton_ind_arr(1).wid;
+        hgt = texton_ind_arr(1).hgt;
         
         fprintf('%d/%d Building spatial pyramid for %s: wid %d, hgt %d\n', ...
             (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), imageFName, wid, hgt);
         
         %% compute histogram at the finest level
         pyramid_cell = cell(copy_pyramidLevels,1);
-        pyramid_cell{1} = zeros(binsHigh, binsHigh, copy_dictionarySize);
+        pyramid_cell{1} = zeros(binsHigh, binsHigh, length(texton_ind_arr)*copy_dictionarySize);
         
         for i=1:binsHigh
             for j=1:binsHigh
-                
-                % find the coordinates of the current bin
-                x_lo = floor(wid/binsHigh * (i-1));
-                x_hi = floor(wid/binsHigh * i);
-                y_lo = floor(hgt/binsHigh * (j-1));
-                y_hi = floor(hgt/binsHigh * j);
-                
-                patch_codewords_transpose = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
-                    (texton_ind.y > y_lo) & (texton_ind.y <= y_hi), :)';        % M x num_patches dim
-                if (strcmp(copy_poolType, 'sum'))
-                    pyramid_cell{1}(i,j,:) = sum(patch_codewords_transpose,2);
-                elseif (strcmp(copy_poolType, 'max'))
-                    pyramid_cell{1}(i,j,:) = max(patch_codewords_transpose,[],2);
-                else
-                    error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
+                for d=1:length(texton_ind_arr)
+                    texton_ind = texton_ind_arr(d);
+                    % find the coordinates of the current bin
+                    x_lo = floor(wid/binsHigh * (i-1));
+                    x_hi = floor(wid/binsHigh * i);
+                    y_lo = floor(hgt/binsHigh * (j-1));
+                    y_hi = floor(hgt/binsHigh * j);
+                    
+                    patch_codewords_transpose = texton_ind.data( (texton_ind.x > x_lo) & (texton_ind.x <= x_hi) & ...
+                        (texton_ind.y > y_lo) & (texton_ind.y <= y_hi), :)';        % M x num_patches dim
+                    if (strcmp(copy_poolType, 'sum'))
+                        pyramid_cell{1}(i,j,1+(d-1)*copy_dictionarySize:d*copy_dictionarySize) = sum(patch_codewords_transpose,2);
+                    elseif (strcmp(copy_poolType, 'max'))
+                        pyramid_cell{1}(i,j,1+(d-1)*copy_dictionarySize:d*copy_dictionarySize) = max(patch_codewords_transpose,[],2);
+                    else
+                        error(['poolType "' poolType '" not supported! Currently only support "sum" and "max"']);
+                    end
                 end
             end
         end
@@ -139,18 +143,30 @@ for batch_idx = 1:num_batches
         
         % normalize
         if (strcmp(copy_poolNormalization,'sum'))
-            total_sum = sum(sum(texton_ind.data));
+            total_sum = 0;
+            for l=1:length(texton_ind_arr)
+                total_sum = total_sum + sum(sum(texton_ind_arr(l).data));
+            end
             if total_sum == 0
                 total_sum = 1;
+            end
+        elseif (strcmp(copy_poolNormalization,'L2'))
+            sum_sq = 0;
+            for l=1:copy_pyramidLevels
+                sum_sq = sum_sq + sum(sum(sum(pyramid_cell{l}.*pyramid_cell{l})));
+                if sum_sq == 0
+                    sum_sq = 1;
+                end
             end
         end
         for l = 1:copy_pyramidLevels
             if (strcmp(copy_poolNormalization,'sum'))
                 pyramid_cell{l} = pyramid_cell{l}/total_sum;
             elseif (strcmp(copy_poolNormalization,'L2'))
-                denominator = sqrt(sum(pyramid_cell{l}.^2,3));
-                denominator(denominator==0)=1;
-                pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, denominator);
+                pyramid_cell{l} = pyramid_cell{l}/sqrt(sum_sq);
+                %denominator = sqrt(sum(pyramid_cell{l}.^2,3));
+                %denominator(denominator==0)=1;
+                %pyramid_cell{l} = bsxfun(@rdivide, pyramid_cell{l}, denominator);
             else
                 error(['poolNormalization "' copy_poolNormalization '" not supported! Currently only support "sum" and "L2"']);
             end
@@ -205,7 +221,7 @@ for batch_idx = 1:num_batches
 end
 
 outFName = fullfile(dataBaseDir, sprintf('pyramids_all_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', dictionarySize, numTextonImages, pyramidLevels, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5));
-save(outFName, 'pyramid_all', 'class_label_all');
+save(outFName, 'pyramid_all', 'class_label_all', '-v7.3');
 
 
 end

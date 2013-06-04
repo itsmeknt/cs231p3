@@ -51,7 +51,35 @@ if (strcmp(dataset_type, 'scene'))
          end
      end     
 elseif (strcmp(dataset_type, 'ppmi'))
-    IMAGE_DIR_DEFAULT = 'norm_ppmi_12class/norm_image/play_instrument';
+    % foolder structure is base_dir/category/train and
+    % base_dir/norm_image/play_instrument/category/test
+    classDirs = dir(dataset_dir);
+    for i=1:length(classDirs);
+        classDir = classDirs(i);
+         if (strcmp(classDir.name, '.') || strcmp(classDir.name, '..'))
+             continue;
+         end
+         trainTestDir = dir([dataset_dir '/' classDir.name]);
+         for j=1:length(trainTestDir)
+             trainOrTestDir = trainTestDir(j);
+             if (strcmp(trainOrTestDir.name, 'train'))
+                 outFilePath = out_train_dir;
+             elseif (strcmp(trainOrTestDir.name, 'test'))
+                 outFilePath = out_test_dir;
+             else
+                 continue;
+             end
+             
+             trainOrTestFiles = dir([dataset_dir '/' classDir.name '/' trainOrTestDir.name]);
+             for k=1:length(trainOrTestFiles)
+                trainOrTestFile = trainOrTestFiles(k);
+                if (strcmp(trainOrTestFile.name, '.') || strcmp(trainOrTestFile.name, '..'))
+                    continue;
+                end
+                copyfile([dataset_dir '/' classDir.name '/' trainOrTestDir.name '/' trainOrTestFile.name], [outFilePath '/' trainOrTestFile.name]);
+             end
+         end
+    end 
 end
 
 end

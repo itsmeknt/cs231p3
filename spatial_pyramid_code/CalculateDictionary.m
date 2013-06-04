@@ -71,8 +71,9 @@ inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
 
 allVar = load(inFName, 'features');
 features = allVar.features;
-ndata = size(features.data,1);
-dim_data = size(features.data,2);
+numSiftDim = length(features);
+ndata = size(features(1).data,1);
+dim_data = size(features(1).data,2);
 
 % load all sift features onto sift_al
 sift_all = [];
@@ -84,7 +85,7 @@ for batch_idx = 1:num_batches
         entries_per_batch = numTextonImages;
     end
     
-    sift_all_batch = cell(entries_per_batch, 1);
+    sift_all_batch = cell(entries_per_batch);
     parfor entry_idx = 1:entries_per_batch
         imageFName = imageFileList{training_indices(entry_idx+copy_num_image_batch_size*(batch_idx-1))};
         
@@ -95,22 +96,32 @@ for batch_idx = 1:num_batches
         allVar = load(inFName, 'features');
         features = allVar.features;
         
-        sift_all_batch{entry_idx} = features.data;
+        sift_all_cell_arr = [];
+        for d=1:length(features)
+            sift_all_cell_arr{d} = features(d).data;
+        end
+        sift_all_batch{entry_idx} = sift_all_cell_arr;
         fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), numTextonImages, inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
     end
     
     totalPatches = 0;
     for entry_idx=1:entries_per_batch
-        totalPatches=totalPatches+size(sift_all_batch{entry_idx},1);
+        currSiftCellArr = sift_all_batch{entry_idx};
+        for d=1:numSiftDim
+            totalPatches=totalPatches+size(currSiftCellArr{d},1);
+        end
     end
     
     entries_per_batch_dense = zeros(totalPatches, dim_data);
     patchCounter = 0;
     for entry_idx=1:entries_per_batch
-        currSift = sift_all_batch{entry_idx};
-        numPatches = size(currSift,1);
-        entries_per_batch_dense(patchCounter+1:patchCounter+numPatches, :) = currSift;
-        patchCounter=patchCounter+numPatches;
+        currSiftCellArr = sift_all_batch{entry_idx};
+        for d=1:numSiftDim
+            currSift = currSiftCellArr{d};
+            numPatches = size(currSift,1);
+            entries_per_batch_dense(patchCounter+1:patchCounter+numPatches, :) = currSift;
+            patchCounter=patchCounter+numPatches;
+        end
     end
     sift_all = [sift_all; entries_per_batch_dense];
 end
@@ -146,8 +157,8 @@ if (~use_learned_dictionary || size(dir(outFNameKmeans),1)==0 || ~canSkip)
     %% run kmeans
     fprintf('\nRunning k-means\n');
     %dictionary = sp_kmeans(centers, sift_all, options);     % Mxd dim
-    opts = statset('Display','iter');
-    [~, dictionary] = kmeans(sift_all, numCodewords, 'EmptyAction', 'singleton', 'Options', opts);
+    opts = statset('Display','iter','UseParallel',[]);
+    [~, dictionary] = kmeans(sift_all, numCodewords, 'onlinephase', 'off', 'EmptyAction', 'singleton', 'Options', opts);
 else
     load(outFNameKmeans, 'dictionary');
 end

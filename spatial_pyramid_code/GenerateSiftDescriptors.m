@@ -35,7 +35,7 @@ for batch_idx = 1:num_batches
     if (size(imageFileList,1) < copy_num_image_batch_size)
         entries_per_batch = size(imageFileList,1);
     end
-    feature_cells = cell(entries_per_batch,1);
+    feature_cells = cell(entries_per_batch); % use min so it won't fail if array size dont match (it should)
     parfor entry_idx = 1:entries_per_batch
         %% load image
         imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
@@ -60,26 +60,35 @@ for batch_idx = 1:num_batches
         end
         
         %% make grid (coordinates of upper left patch corners)
-        remX = mod(wid-copy_patchSize,copy_gridSpacing);
-        offsetX = floor(remX/2)+1;
-        remY = mod(hgt-copy_patchSize,copy_gridSpacing);
-        offsetY = floor(remY/2)+1;
-        
-        [gridX,gridY] = meshgrid(offsetX:copy_gridSpacing:wid-copy_patchSize+1, offsetY:copy_gridSpacing:hgt-copy_patchSize+1);
-        
-        fprintf('Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
-            imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
-        
-        %% find SIFT descriptors
-        siftArr = sp_find_sift_grid(I, gridX, gridY, copy_patchSize, 0.8);
-        siftArr = sp_normalize_sift(siftArr);
-        
-        feature_cells{entry_idx}.data = siftArr;
-        feature_cells{entry_idx}.x = gridX(:) + copy_patchSize/2 - 0.5;
-        feature_cells{entry_idx}.y = gridY(:) + copy_patchSize/2 - 0.5;
-        feature_cells{entry_idx}.wid = wid;
-        feature_cells{entry_idx}.hgt = hgt;
-        
+        features = [];
+        for d = 1:min(length(copy_patchSize),length(copy_gridSpacing)) % use min so it won't fail if array size dont match (it should)
+            curr_patchSize = copy_patchSize(d);
+            curr_gridSpacing = copy_gridSpacing(d);
+            
+            remX = mod(wid-curr_patchSize,curr_gridSpacing);
+            offsetX = floor(remX/2)+1;
+            remY = mod(hgt-curr_patchSize,curr_gridSpacing);
+            offsetY = floor(remY/2)+1;
+            
+            [gridX,gridY] = meshgrid(offsetX:curr_gridSpacing:wid-curr_patchSize+1, offsetY:curr_gridSpacing:hgt-curr_patchSize+1);
+            
+            fprintf('%d/%d Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
+                (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
+            
+            %% find SIFT descriptors
+            siftArr = sp_find_sift_grid(I, gridX, gridY, curr_patchSize, 0.8);
+            siftArr = sp_normalize_sift(siftArr);
+            
+            feature = [];
+            feature.data = siftArr;
+            feature.x = gridX(:) + curr_patchSize/2 - 0.5;
+            feature.y = gridY(:) + curr_patchSize/2 - 0.5;
+            feature.wid = wid;
+            feature.hgt = hgt;
+            
+            features = [features; feature];
+        end
+        feature_cells{entry_idx} = features;
         
     end % for
     

@@ -32,12 +32,12 @@ copy_ext_param_5 = ext_param_5;
 copy_dictionarySize = dictionarySize;
 copy_numTextonImages = numTextonImages;
 copy_code_constraint = code_constraint;
+copy_NN_k = NN_k;
 copy_normalizeD = normalizeD;
-if (strcmp(copy_code_constraint, 'LLC'))
-    copy_NN_k = NN_k;
-    copy_epsilon = epsilon;
-end
+copy_epsilon = epsilon;
 copy_num_image_batch_size = num_image_batch_size;
+copy_patchSize = patchSize;
+copy_gridSpacing = gridSpacing;
 fprintf('Building Histograms\n\n');
 
 
@@ -56,8 +56,8 @@ for batch_idx = 1:num_batches
     if (size(imageFileList,1) < copy_num_image_batch_size)
         entries_per_batch = size(imageFileList,1);
     end
-    texton_ind_batch = cell(entries_per_batch,1);
-    for entry_idx = 1:entries_per_batch
+    texton_ind_arr_batch = cell(entries_per_batch,1);
+    parfor entry_idx = 1:entries_per_batch
         imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
         baseFName = fullfile(dirN, base);
@@ -72,57 +72,62 @@ for batch_idx = 1:num_batches
         inFName = fullfile(dataBaseDir, sprintf('%s%s', baseFName, featureSuffix));
         allVar = load(inFName, 'features');
         features = allVar.features;
-        ndata = size(features.data,1);
+        ndata = size(features(1).data,1);
         fprintf('%d/%d Building histogram for %s, %d descriptors\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), inFName, ndata);
         
         %% find texton indices and compute histogram
-        texton_ind = [];
-        texton_ind.data = zeros(ndata, copy_dictionarySize);         % num_patches x M dim
-        texton_ind.x = features.x;
-        texton_ind.y = features.y;
-        texton_ind.wid = features.wid;
-        texton_ind.hgt = features.hgt;
-        %run in batches to keep the memory foot print small
-        batchSize = 10000;
-        if ndata <= batchSize
-            if (strcmp(copy_code_constraint, 'VC'))
-                dist_mat = sp_dist2(features.data, dictionary);
-                [~, min_ind] = min(dist_mat, [], 2);
-                row = (1:length(min_ind))';
-                col = min_ind;
-                texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
-            elseif (strcmp(copy_code_constraint, 'LLC'))
-                B_knn_idxs = knnsearch(dictionary, features.data, 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
-                for i=1:ndata
-                    c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
-                    texton_ind.data(i,:) = c;
-                end
-            else
-                error(['code constraint "' copy_code_constraint '" not supported! Currently only support "VC" and "LLC"']);
-            end
-        else
-            for j = 1:batchSize:ndata
-                lo = j;
-                hi = min(j+batchSize-1,ndata);
+        texton_ind_arr = [];
+        for d=1:min(length(copy_gridSpacing), length(copy_patchSize))
+            curr_feature = features(d);
+            texton_ind = [];
+            texton_ind.data = zeros(ndata, copy_dictionarySize);         % num_patches x M dim
+            texton_ind.x = curr_feature.x;
+            texton_ind.y = curr_feature.y;
+            texton_ind.wid = curr_feature.wid;
+            texton_ind.hgt = curr_feature.hgt;
+            %run in batches to keep the memory foot print small
+            batchSize = 10000;
+            if ndata <= batchSize
                 if (strcmp(copy_code_constraint, 'VC'))
-                    dist_mat = dist2(features.data(lo:hi,:), dictionary);
+                    dist_mat = sp_dist2(curr_feature.data, dictionary);
                     [~, min_ind] = min(dist_mat, [], 2);
                     row = (1:length(min_ind))';
                     col = min_ind;
                     texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
                 elseif (strcmp(copy_code_constraint, 'LLC'))
-                    B_knn_idxs = knnsearch(dictionary, features.data(lo:hi,:), 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
-                    for i=lo:hi
-                        c = solve_LLC_KNN(features.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
+                    B_knn_idxs = knnsearch(dictionary, curr_feature.data, 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
+                    for i=1:ndata
+                        c = solve_LLC_KNN(curr_feature.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
                         texton_ind.data(i,:) = c;
                     end
                 else
                     error(['code constraint "' copy_code_constraint '" not supported! Currently only support "VC" and "LLC"']);
                 end
+            else
+                for j = 1:batchSize:ndata
+                    lo = j;
+                    hi = min(j+batchSize-1,ndata);
+                    if (strcmp(copy_code_constraint, 'VC'))
+                        dist_mat = dist2(curr_feature.data(lo:hi,:), dictionary);
+                        [~, min_ind] = min(dist_mat, [], 2);
+                        row = (1:length(min_ind))';
+                        col = min_ind;
+                        texton_ind.data(sub2ind(size(texton_ind.data),row,col)) = 1;
+                    elseif (strcmp(copy_code_constraint, 'LLC'))
+                        B_knn_idxs = knnsearch(dictionary, curr_feature.data(lo:hi,:), 'K', copy_NN_k, 'NSMethod','exhaustive','Distance','euclidean');
+                        for i=lo:hi
+                            c = solve_LLC_KNN(curr_feature.data(i,:), dictionary, B_knn_idxs(i,:), copy_epsilon, copy_normalizeD);
+                            texton_ind.data(i,:) = c;
+                        end
+                    else
+                        error(['code constraint "' copy_code_constraint '" not supported! Currently only support "VC" and "LLC"']);
+                    end
+                end
             end
+            texton_ind_arr = [texton_ind_arr; texton_ind];
         end
         
-        texton_ind_batch{entry_idx} = texton_ind;
+        texton_ind_arr_batch{entry_idx} = texton_ind_arr;
         % H = hist(texton_ind.data, 1:copy_dictionarySize);
         % H_all = [H_all; H];
     end
@@ -139,7 +144,7 @@ for batch_idx = 1:num_batches
         end
         
         %% save texton indices and histograms
-        texton_ind = texton_ind_batch{entry_idx};
+        texton_ind = texton_ind_arr_batch{entry_idx};
         sp_make_dir(outFName);
         save(outFName, 'texton_ind');
     end
