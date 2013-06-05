@@ -64,7 +64,7 @@ for batch_idx = 1:num_batches
     end
     pyramid_batch = cell(entries_per_batch,1);
     class_label_batch = cell(entries_per_batch,1);
-    parfor entry_idx = 1:entries_per_batch
+    for entry_idx = 1:entries_per_batch
         %% load image
         imageFName = imageFileList{entry_idx+copy_num_image_batch_size*(batch_idx-1)};
         [dirN base] = fileparts(imageFName);
@@ -126,7 +126,7 @@ for batch_idx = 1:num_batches
         %% compute histograms at the coarser levels
         num_bins = binsHigh/2;
         for l = 2:copy_pyramidLevels
-            pyramid_cell{l} = zeros(num_bins, num_bins, copy_dictionarySize);
+            pyramid_cell{l} = zeros(num_bins, num_bins, length(texton_ind_arr)*copy_dictionarySize);
             for i=1:num_bins
                 for j=1:num_bins
                     if (strcmp(copy_poolType, 'sum'))

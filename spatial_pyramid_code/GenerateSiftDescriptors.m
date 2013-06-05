@@ -72,8 +72,8 @@ for batch_idx = 1:num_batches
             
             [gridX,gridY] = meshgrid(offsetX:curr_gridSpacing:wid-curr_patchSize+1, offsetY:curr_gridSpacing:hgt-curr_patchSize+1);
             
-            fprintf('%d/%d Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
-                (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
+            fprintf('%d/%d (%d/%d) Processing %s: wid %d, hgt %d, grid size: %d x %d, %d patches\n', ...
+                (entry_idx+copy_num_image_batch_size*(batch_idx-1)), size(imageFileList,1), d, min(length(copy_patchSize),length(copy_gridSpacing)), imageFName, wid, hgt, size(gridX,2), size(gridX,1), numel(gridX));
             
             %% find SIFT descriptors
             siftArr = sp_find_sift_grid(I, gridX, gridY, curr_patchSize, 0.8);

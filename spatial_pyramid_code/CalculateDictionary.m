@@ -97,11 +97,13 @@ for batch_idx = 1:num_batches
         features = allVar.features;
         
         sift_all_cell_arr = [];
+        numDescriptors = 0;
         for d=1:length(features)
             sift_all_cell_arr{d} = features(d).data;
+            numDescriptors = numDescriptors + size(features(d).data, 1);
         end
         sift_all_batch{entry_idx} = sift_all_cell_arr;
-        fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), numTextonImages, inFName, size(features.data,1), entry_idx+copy_num_image_batch_size*(batch_idx-1));
+        fprintf('%d/%d Loaded CalcuateDictionary %s, %d descriptors, %d so far\n', (entry_idx+copy_num_image_batch_size*(batch_idx-1)), numTextonImages, inFName, numDescriptors, entry_idx+copy_num_image_batch_size*(batch_idx-1));
     end
     
     totalPatches = 0;
@@ -174,7 +176,10 @@ if (use_learned_dictionary)
             c = solve_LLC_analytically(x, dictionary, LLC_lambda, LLC_sigma, epsilon, normalizeD);
             dictionary_feature_selection_idx = abs(c) > significant_code_threshold;
             
-            fprintf('%d\n', sum(dictionary_feature_selection_idx))
+            if (sum(dictionary_feature_selection_idx) == 0) % no feature selected
+                fprintf('no feature selected! - skip\n');
+                continue;
+            end
             
             dictionary_reduced = dictionary(dictionary_feature_selection_idx,:);
             c_tilda = solve_LLC_analytically(x, dictionary_reduced, 0, 0, epsilon, normalizeD);

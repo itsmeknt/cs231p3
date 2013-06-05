@@ -67,13 +67,15 @@ ss = int64(date_and_time(6));
 dataset_name = dataset_base_dir;
 dataset_name(dataset_name=='/')='-';
 outFName = [RESULTS_DIR '/' sprintf('%d-%d-%d_%d:%d:%d_%s_eval_%d_%d_%d_%d_%d_%d_ext_%d_%d_%d_%d_%d.mat', y, m, d, hh, mm ,ss, dataset_name, use_histogram_intersection_kernel, dictionarySize, numTextonImages, pyramidLevels, gridSpacing, patchSize, ext_param_1, ext_param_2, ext_param_3, ext_param_4, ext_param_5)];
+if (size(dir(RESULTS_DIR),1) == 0)
+    mkdir(RESULTS_DIR);
+end
 save(outFName, 'train_evaluation', 'test_evaluation'); 
 
 
 train_evaluations = [];
 test_evaluations = [];
 test_accuracies = [];
-c_vals = [0.01, 0.05, 0.1, 0.3, 0.5, 0.75, 1, 2, 5, 10, 15, 20, 50, 100, 500, 1000, 5000, 10000];
 for i=1:length(c_vals)
     c = c_vals(i)
     if (use_histogram_intersection_kernel)

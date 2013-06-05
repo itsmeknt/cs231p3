@@ -20,11 +20,15 @@ ndata_max = 100000;
 maxImageSize = 1000;
 numTextonImages = 1000;
 
-dictionarySize = 1024;
-pyramidLevels = 4;
+dictionarySize = 400;
+pyramidLevels = 3;
 
 gridSpacing = [8];
 patchSize = [16];
+
+%patchSize = [12, 14, 17, 20, 24, 29, 35, 42, 51, 61];
+%gridSpacing = 0.2*patchSize;
+
 
 use_LLC = 1;
 if (use_LLC)
@@ -33,23 +37,29 @@ if (use_LLC)
     poolNormalization = 'L2';
     normalizeD = 1;
     NN_k = 5;
+    NN_threshold = 9999;
     %NN_threshold;
     use_pyramid_match_kernel = 0;
     
-    use_learned_dictionary = 1;
+    use_learned_dictionary = 0;     % slow
     dictionary_learning_max_iter = 1;
     significant_code_threshold = 0.01;
-    LLC_lambda = 20;
-    LLC_sigma = 8;
+    LLC_lambda = 100;
+    LLC_sigma = 20;
 else
-    code_constraint = 'VC';
+    code_constraint = 'VQ';
     poolType = 'sum';
     poolNormalization = 'sum';
     use_pyramid_match_kernel = 1;
     use_learned_dictionary = 0;
+    NN_threshold = 0;
     
     normalizeD = 1;
+    dictionary_learning_max_iter = 1;
+    significant_code_threshold = 0.01;
     NN_k = 0;
+    LLC_lambda = 0;
+    LLC_sigma = 0;
 end
 
 if (use_pyramid_match_kernel)
@@ -61,12 +71,13 @@ else
 end
 
 balance_dictionary_training = 0;
+c_vals = [0.01, 0.05, 0.1, 0.3, 0.5, 0.75, 1, 2, 5, 10, 15, 20, 50, 100, 500, 1000, 5000, 10000];
 
 % ext_param_1 governs generating histograms and compiling pyramid
 % (concatenating histograms of different scales). Ignores SIFT and
 % dictionary.
 % force param_1 to be 0 when generating SIFT features and codebook dictionary
-ext_param_1 = 10000*use_LLC + 1000*(~strcmp(code_constraint, 'VC')) + 100*(~use_pyramid_level_weights) + 10*(~strcmp(poolType, 'sum')) + (~strcmp(poolNormalization, 'sum'));   % last 3 terms are for legacy reasons, should actually be removed
+ext_param_1 = 0*floor(10*NN_threshold) + 10000*use_LLC + 1000*(~strcmp(code_constraint, 'VQ')) + 100*(~use_pyramid_level_weights) + 10*(~strcmp(poolType, 'sum')) + (~strcmp(poolNormalization, 'sum'));   % last 3 terms are for legacy reasons, should actually be removed
 if (use_LLC && NN_k ~= 5)
     ext_param_1 = ext_param_1 + 1e5*NN_k;
 end
